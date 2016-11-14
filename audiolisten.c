@@ -111,7 +111,7 @@ int main(int argc, char * argv[]){
 	bzero(&(their_addr.sin_zero), 8); // zero the rest of the struct
 
 	if (connect(tcp_sd, (struct sockaddr *)&their_addr, sizeof(struct sockaddr)) == -1) {
-		perror("connect");
+		perror("ERROR on connecting TCP");
 		exit(1);
 	}
 	
