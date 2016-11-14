@@ -82,7 +82,7 @@ int main(int argc, char * argv[]){
 	cc.tau = atoi(argv[4]);
 	cc.mode = atoi(argv[5]);
 	
-	printf("tcp port: %d", tcp_port);
+	printf("tcp port: %d\n", tcp_port);
 	
 	//Create a TCP socket 
 	tcp_sd = socket(AF_INET, SOCK_STREAM, 0);
@@ -277,6 +277,7 @@ void handle_single_client(char* pathname, int serv_port, int cli_port){
 	their_addr.sin_addr.s_addr = cc.cli_ip;
 	bzero(&(their_addr.sin_zero), 8); // zero the rest of the struct
 	
+	printf("path name is %s\n",pathname);
 	// Open the filename to read
 	int fd = open(pathname, O_RDONLY);
 	if (fd == -1) {
