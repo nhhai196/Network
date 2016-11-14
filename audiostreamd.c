@@ -129,6 +129,8 @@ int main(int argc, char * argv[]){
 		cli_udp_port = atoi(strtok(buffer, " "));
 		pathname = strtok(NULL, " ");
 		
+		printf("path name %s, port %d\n", pathname, cli_udp_port);
+		
 		//Check if the file requested exists
 		if( access( pathname, F_OK ) == -1 ) {
 			// file doesn't exists
@@ -274,8 +276,6 @@ void handle_single_client(char* pathname, int serv_port, int cli_port){
 	their_addr.sin_port = htons(cli_port);
 	their_addr.sin_addr.s_addr = cc.cli_ip;
 	bzero(&(their_addr.sin_zero), 8); // zero the rest of the struct
-	
-	printf("path name %s", pathname);
 	
 	// Open the filename to read
 	int fd = open(pathname, O_RDONLY);
