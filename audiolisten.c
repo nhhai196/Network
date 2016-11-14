@@ -94,7 +94,7 @@ int main(int argc, char * argv[]){
 	strcpy(filename, argv[10]);
 	mu = (int) (1000000/gama); 
 	
-	printf("tcp port: %d", tcp_port);
+	printf("tcp port: %d\n", tcp_port);
 	
 	//Create a TCP socket 
 	tcp_sd = socket(AF_INET, SOCK_STREAM, 0);
@@ -206,6 +206,7 @@ int main(int argc, char * argv[]){
 	bzero(&(their_addr.sin_zero), 8); // zero the rest of the struct
 	
 	// TODO : sleep 2.5 seconds
+	sleep(2);
 	
 	// Open file /dev/audio
 	fp = open("/dev/audio", O_RDWR, 0);
@@ -214,30 +215,38 @@ int main(int argc, char * argv[]){
 		exit(1);
 	}
 	
-	ualarm(mu, mu);
+	printf("MU is %d\n", mu);
+	ualarm(100000, 100000);
 	signal(SIGALRM, SIGALRMHandler);
+	while(1);
 }
 
 void SIGPOLLHandler(int sig){
+	printf("SIGPOLL with sig = %d\n", sig);
 	int numbytes;
 	char buffer[payload_size];
 	struct sockaddr_in serv_add;
-	memset(buffer, 0, payload_size);
-	memset((char *) &serv_add, 0, addr_len);
+    do{
+		memset(buffer, 0, payload_size);
+		memset((char *) &serv_add, 0, addr_len);
 	
-	// Get the audio packet
-	numbytes = recvfrom(sd_to_rcv, buffer, payload_size, 0, (struct sockaddr*) &serv_add, &addr_len);
-	pthread_mutex_lock(&shared.mutex);
-	//write to buffer
-	int i = 0;
-	for (i = 0; i < strlen(buffer); i++){
-		if (shared.cbl < shared.buf_size){
-			shared.au_buff[shared.cbl++] = buffer[i];
+		// Get the audio packet
+		numbytes = recvfrom(sd_to_rcv, buffer, payload_size, 0, (struct sockaddr*) &serv_add, &addr_len);
+		if (numbytes >= 0){
+			printf("Received an audio packet of length %d, %d\n", numbytes, payload_size);
+			pthread_mutex_lock(&shared.mutex);
+			//write to buffer
+			int i = 0;
+			for (i = 0; i < numbytes; i++){
+				if (shared.cbl < shared.buf_size){
+					shared.au_buff[shared.cbl++] = buffer[i];
+				}
+			}
+	
+			send_feedback();	
+			pthread_mutex_unlock(&shared.mutex);
 		}
-	}
-	
-	send_feedback();	
-	pthread_mutex_unlock(&shared.mutex);
+	} while (numbytes>= 0);
 }
 
 void send_feedback(){
@@ -247,9 +256,11 @@ void send_feedback(){
 	if (sendto(sd_to_send, msg, strlen(msg), 0, (struct sockaddr *) &their_addr, addr_len) < 0){
 		perror("ERROR on send feedback");
 	}
+	printf("Sent a feedback packet to server with cbl = %d\n", shared.cbl);
 }
 
 void SIGALRMHandler(int sig){
+	printf("SIGALRM with sig = %d\n", sig);
 	pthread_mutex_lock(&shared.mutex);
 	// read and then remove from buffer
 	int size = gama * payload_size;

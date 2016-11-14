@@ -178,18 +178,21 @@ void update_ccvars (struct ccvars cc, int tau, int tbl, int cbl, int gamma){
 } */
 
 void SIGPOLLHandler(int sig){
+	printf("SIGPOLL\n");
 	int numbytes;
 	int size = cc.payload_size;
 	char buffer[size];
 	struct sockaddr_in serv_add;
-	memset(buffer, 0, size);
-	memset((char *) &serv_add, 0, addr_len);
+	//do{
+		memset(buffer, 0, size);
+		memset((char *) &serv_add, 0, addr_len);
 	
-	// Get the feedback packet
-	numbytes = recvfrom(cc.sd_to_rcv, buffer, size, 0, (struct sockaddr*) &serv_add, &addr_len);
-	
-	read_feedback(buffer);
-	update_throughput();
+		// Get the feedback packet
+		numbytes = recvfrom(cc.sd_to_rcv, buffer, size, 0, (struct sockaddr*) &serv_add, &addr_len);
+		printf("Received a feedback packet: %s\n", buffer);
+		read_feedback(buffer);
+		update_throughput();
+	//} while (numbytes >= 0);
 }
 
 void update_throughput(){
@@ -308,10 +311,11 @@ void handle_single_client(char pathname[], int serv_port, int cli_port){
 		if (bytes_write != bytes_read){
 			perror("ERROR: cannot write bytes read");
 		}
-		
+		printf("Sent %d bytes to client with tau =%d\n", bytes_read, cc.tau);
 		// Sleep between sucessive packets
 		usleep(cc.tau);
 	}
+	close(fd);
 }
 
 
