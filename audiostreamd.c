@@ -82,6 +82,7 @@ int main(int argc, char * argv[]){
 	cc.tau = atoi(argv[4]);
 	cc.mode = atoi(argv[5]);
 	
+	printf("tcp port: %d", tcp_port);
 	
 	//Create a TCP socket 
 	tcp_sd = socket(AF_INET, SOCK_STREAM, 0);

@@ -94,6 +94,8 @@ int main(int argc, char * argv[]){
 	strcpy(filename, argv[10]);
 	mu = (int) (1000000/gama); 
 	
+	printf("tcp port: %d", tcp_port);
+	
 	//Create a TCP socket 
 	tcp_sd = socket(AF_INET, SOCK_STREAM, 0);
 
