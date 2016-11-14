@@ -208,7 +208,7 @@ int main(int argc, char * argv[]){
 	// TODO : sleep 2.5 seconds
 	
 	// Open file /dev/audio
-	fp = open("/dev/audio", O_RDWR, 0);
+	fp = open("/dev/audio0", O_RDWR, 0);
 	if (fp == -1){
 		perror("ERROR on open dev audio");
 		exit(1);
