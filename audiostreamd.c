@@ -54,7 +54,7 @@ void SIGPOLLHandler();
 void read_feedback(char buffer[]);
 void update_throughput();
 void initialize();
-void handle_single_client(char* pathname, int serv_port, int cli_port);
+void handle_single_client(char pathname[], int serv_port, int cli_port);
 
 
 int main(int argc, char * argv[]){
@@ -125,9 +125,9 @@ int main(int argc, char * argv[]){
 		}
 		
 		//char * port_num = (char *) malloc(10);
-		char * pathname = (char*) malloc(100);
+		char pathname[100];
 		cli_udp_port = atoi(strtok(buffer, " "));
-		pathname = strtok(NULL, " ");
+		strcpy(pathname, strtok(NULL, " "));
 		
 		printf("path name %s, port %d\n", pathname, cli_udp_port);
 		
@@ -213,7 +213,7 @@ void read_feedback(char buffer[]){
 	cc.gamma = atoi(ptr);
 }
 
-void handle_single_client(char* pathname, int serv_port, int cli_port){
+void handle_single_client(char pathname[], int serv_port, int cli_port){
 	int size = cc.payload_size;
 	struct sockaddr_in my_addr, their_addr;
 	struct timeval start, end;
