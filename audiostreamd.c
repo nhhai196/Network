@@ -275,6 +275,8 @@ void handle_single_client(char* pathname, int serv_port, int cli_port){
 	their_addr.sin_addr.s_addr = cc.cli_ip;
 	bzero(&(their_addr.sin_zero), 8); // zero the rest of the struct
 	
+	printf("path name %s", pathname);
+	
 	// Open the filename to read
 	int fd = open(pathname, O_RDONLY);
 	if (fd == -1) {
