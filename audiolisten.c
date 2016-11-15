@@ -89,8 +89,8 @@ int main(int argc, char * argv[]){
 	payload_size = atoi(argv[4]);
 	playback_del = atoi(argv[5]);
 	gama = atoi(argv[6]);
-	buf_sz = atoi(argv[7]);
-	target_buf = atoi(argv[8]);
+	buf_sz = 1024 * atoi(argv[7]); // Bytes
+	target_buf = 1024 * atoi(argv[8]); // Bytes
 	strcpy(filename, argv[10]);
 	mu = (int) (1000000/gama); 
 	
@@ -216,7 +216,7 @@ int main(int argc, char * argv[]){
 	}
 	
 	printf("MU is %d\n", mu);
-	ualarm(100000, 100000);
+	ualarm(mu, mu);
 	signal(SIGALRM, SIGALRMHandler);
 	while(1);
 }
@@ -274,6 +274,7 @@ void SIGALRMHandler(int sig){
 		shared.cbl = 0;
 		memset(shared.au_buff, 0, shared.buf_size);
 	}
+	send_feedback();
 	pthread_mutex_unlock(&shared.mutex);
 }
 

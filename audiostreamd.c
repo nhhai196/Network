@@ -79,7 +79,7 @@ int main(int argc, char * argv[]){
 	tcp_port = atoi(argv[1]);
 	serv_udp_port = atoi(argv[2]);
 	cc.payload_size = atoi(argv[3]);
-	cc.tau = atoi(argv[4]);
+	cc.tau = 1000* atoi(argv[4]);
 	cc.mode = atoi(argv[5]);
 	
 	printf("tcp port: %d\n", tcp_port);
@@ -134,7 +134,7 @@ int main(int argc, char * argv[]){
 		//Check if the file requested exists
 		if( access( pathname, F_OK ) == -1 ) {
 			// file doesn't exists
-			perror("File requested doesn't exist");
+			perror("ERROR on file requested");
 			// Send a negative message "KO" on TCP to the client
 			if (write(new_tcp_sd, "KO", 2) < 0){
 				perror("ERROR on send");
@@ -162,7 +162,7 @@ int main(int argc, char * argv[]){
 			handle_single_client(pathname, serv_udp_port, cli_udp_port);
 		}
 		else { // Parent process
-		close(new_tcp_sd);
+			close(new_tcp_sd);
 		}
 	}
 	
@@ -196,13 +196,13 @@ void SIGPOLLHandler(int sig){
 }
 
 void update_throughput(){
-	int a = 1;
+	int a = 50;
 	if (cc.cbl < cc.tbl){
-		cc.tau = cc.tau + a;
+		cc.tau = cc.tau - a;
 	}
 	
 	if (cc.cbl > cc.tbl){
-		cc.tau = cc.tau - a;
+		cc.tau = cc.tau + a;
 	}
 }
 
@@ -316,6 +316,8 @@ void handle_single_client(char pathname[], int serv_port, int cli_port){
 		usleep(cc.tau);
 	}
 	close(fd);
+	close(cc.sd_to_send);
+	close(cc.sd_to_rcv);
 }
 
 
