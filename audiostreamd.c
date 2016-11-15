@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+#include <unistd.h>
+#include <errno.h>
 //Generic socket:
 
 #include <sys/socket.h>
@@ -31,7 +33,7 @@
 #define BUFFSIZE 1000
 
 // Global variables
-int tau;
+//int tau;
 
 struct ccvars{
 	int tau; // time spacing between packets
@@ -65,6 +67,8 @@ int main(int argc, char * argv[]){
 	int cli_udp_port;
 	struct sockaddr_in tserv_add, userv_add, tcli_add, ucli_add;
 	char buffer[BUFFSIZE];
+	int child_count = 0;
+	int processID, n;
 	
 	// get the size of struct addr
 	addr_len = sizeof(tserv_add);
@@ -79,7 +83,7 @@ int main(int argc, char * argv[]){
 	tcp_port = atoi(argv[1]);
 	serv_udp_port = atoi(argv[2]);
 	cc.payload_size = atoi(argv[3]);
-	cc.tau = 1000* atoi(argv[4]);
+	cc.tau = 1000* atoi(argv[4]); // micro seconds
 	cc.mode = atoi(argv[5]);
 	
 	printf("tcp port: %d\n", tcp_port);
@@ -98,6 +102,7 @@ int main(int argc, char * argv[]){
 	tserv_add.sin_family = AF_INET;
 	tserv_add.sin_port = htons(tcp_port);
 	tserv_add.sin_addr.s_addr = INADDR_ANY;
+	bzero(&(tserv_add.sin_zero), 8);
 
 	// Bind the host address using bind() 
 	if (bind(tcp_sd, (struct sockaddr *) &tserv_add, sizeof(tserv_add)) < 0){
@@ -120,12 +125,14 @@ int main(int argc, char * argv[]){
 		}
 		
 		// read the request from the client  
-		if (read(new_tcp_sd, buffer, BUFFSIZE) < 0){
+		if ((n = read(new_tcp_sd, buffer, BUFFSIZE)) < 0){
 			perror("ERROR on read tcp request");
 		}
 		
 		//char * port_num = (char *) malloc(10);
 		char pathname[100];
+		buffer[n] = '\0';
+		//printf("Buffer %s\n", buffer);
 		cli_udp_port = atoi(strtok(buffer, " "));
 		strcpy(pathname, strtok(NULL, " "));
 		
@@ -144,7 +151,7 @@ int main(int argc, char * argv[]){
 		memset(buffer, 0, BUFFSIZE);
 		sprintf(buffer, "OK %d", serv_udp_port);
 		if (write(new_tcp_sd, buffer, strlen(buffer)) < 0){
-		perror("ERROR on send");
+			perror("ERROR on send");
 		}
 		
 		
@@ -155,27 +162,27 @@ int main(int argc, char * argv[]){
 			printf("ERROR on fork\n");
 			exit(1);
 		}
-	
+		
+		child_count++;
 		if (pid == 0) { // Child process
 			//Global variables
 
 			handle_single_client(pathname, serv_udp_port, cli_udp_port);
 		}
-		else { // Parent process
-			close(new_tcp_sd);
-		}
+		// Parent process
+		close(new_tcp_sd);
+		/*while (child_count){
+			processID = waitpid((pid_t) - 1, NULL, WNOHANG); 		
+			if (processID ==0){
+				break; // No zombie to wait
+			}
+			else if (processID > 0){
+				child_count--;
+			}
+		} */
 	}
 	
 }
-
-/*
-void update_ccvars (struct ccvars cc, int tau, int tbl, int cbl, int gamma){
-	cc.tau = tau;
-	cc.tbl = tbl;
-	cc.cbl = cbl;
-	cc.gamma = gamma;
-	cc.a = 1;
-} */
 
 void SIGPOLLHandler(int sig){
 	printf("SIGPOLL\n");
@@ -189,20 +196,27 @@ void SIGPOLLHandler(int sig){
 	
 		// Get the feedback packet
 		numbytes = recvfrom(cc.sd_to_rcv, buffer, size, 0, (struct sockaddr*) &serv_add, &addr_len);
+		//if (numbytes > 0){
 		printf("Received a feedback packet: %s\n", buffer);
 		read_feedback(buffer);
 		update_throughput();
+		//}
 	//} while (numbytes >= 0);
 }
 
 void update_throughput(){
-	int a = 50;
-	if (cc.cbl < cc.tbl){
-		cc.tau = cc.tau - a;
-	}
+	if (mode ==1){
+		int a = 100;
+		if (cc.cbl < cc.tbl){
+			cc.tau = cc.tau - a;
+		}
 	
-	if (cc.cbl > cc.tbl){
-		cc.tau = cc.tau + a;
+		if (cc.cbl > cc.tbl){
+			cc.tau = cc.tau + a;
+		}
+	}
+	else if (mode == 2){
+			
 	}
 }
 
@@ -288,7 +302,7 @@ void handle_single_client(char pathname[], int serv_port, int cli_port){
 		exit(1);
 	}
 
-	int bytes_read, bytes_write;
+	int bytes_read, bytes_write, ret;
 	// Loops to read data, each time read size bytes
 	while (1) {
 		bzero(buf, size);
@@ -313,7 +327,14 @@ void handle_single_client(char pathname[], int serv_port, int cli_port){
 		}
 		printf("Sent %d bytes to client with tau =%d\n", bytes_read, cc.tau);
 		// Sleep between sucessive packets
-		usleep(cc.tau);
+		ret = usleep(cc.tau);
+		printf("sleep returns %d\n", ret);
+		if (ret == -1){
+			printf("%d\n", errno);
+			if (errno == EINTR){
+			continue;
+			}
+		} 
 	}
 	close(fd);
 	close(cc.sd_to_send);

@@ -92,7 +92,7 @@ int main(int argc, char * argv[]){
 	buf_sz = 1024 * atoi(argv[7]); // Bytes
 	target_buf = 1024 * atoi(argv[8]); // Bytes
 	strcpy(filename, argv[10]);
-	mu = (int) (1000000/gama); 
+	mu = (int) (1000000/gama); // micro seconds
 	
 	printf("tcp port: %d\n", tcp_port);
 	
@@ -232,7 +232,7 @@ void SIGPOLLHandler(int sig){
 	
 		// Get the audio packet
 		numbytes = recvfrom(sd_to_rcv, buffer, payload_size, 0, (struct sockaddr*) &serv_add, &addr_len);
-		if (numbytes >= 0){
+		if (numbytes > 0){
 			printf("Received an audio packet of length %d, %d\n", numbytes, payload_size);
 			pthread_mutex_lock(&shared.mutex);
 			//write to buffer
@@ -245,6 +245,10 @@ void SIGPOLLHandler(int sig){
 	
 			send_feedback();	
 			pthread_mutex_unlock(&shared.mutex);
+			if (numbytes < payload_size){
+				printf("Exit from sigpoll\n");
+				exit(0);
+			}
 		}
 	} while (numbytes>= 0);
 }
