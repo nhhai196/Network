@@ -223,10 +223,10 @@ int main(int argc, char * argv[]){
 
 void SIGPOLLHandler(int sig){
 	printf("SIGPOLL with sig = %d\n", sig);
-	int numbytes;
+	int numbytes, bytes_copied = 0;
 	char buffer[payload_size];
 	struct sockaddr_in serv_add;
-    do{
+	do{
 		memset(buffer, 0, payload_size);
 		memset((char *) &serv_add, 0, addr_len);
 	
@@ -240,9 +240,10 @@ void SIGPOLLHandler(int sig){
 			for (i = 0; i < numbytes; i++){
 				if (shared.cbl < shared.buf_size){
 					shared.au_buff[shared.cbl++] = buffer[i];
+					bytes_copied++;
 				}
 			}
-	
+			printf("Copied % Bytes to audio buffer\n", bytes_copied);
 			send_feedback();	
 			pthread_mutex_unlock(&shared.mutex);
 			if (numbytes < payload_size){
@@ -265,19 +266,28 @@ void send_feedback(){
 
 void SIGALRMHandler(int sig){
 	printf("SIGALRM with sig = %d\n", sig);
+	int bytes_write;
 	pthread_mutex_lock(&shared.mutex);
 	// read and then remove from buffer
 	int size = gama * payload_size;
 	if (shared.cbl >= size){
-		write(fp, shared.au_buff, size);
+		bytes_write = write(fp, shared.au_buff, size);
+		if (bytes_write != size){
+			printf("ERROR on write to /dev/audio\n");
+		}
 		shared.cbl -= size;
 		strcpy(shared.au_buff, shared.au_buff+size);
 	}
 	else {
-		write(fp, shared.au_buff, shared.cbl);
+		bytes_write = write(fp, shared.au_buff, shared.cbl);
+		if (bytes_write != shared.cbl){
+			printf("ERROR on write to /dev/audio\n");
+		}
 		shared.cbl = 0;
 		memset(shared.au_buff, 0, shared.buf_size);
 	}
+	
+	printf("Wrote % Bytes to /dev/audio\n", bytes_write);
 	send_feedback();
 	pthread_mutex_unlock(&shared.mutex);
 }

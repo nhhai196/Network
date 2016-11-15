@@ -33,7 +33,9 @@
 #define BUFFSIZE 1000
 
 // Global variables
-//int tau;
+int a = 100; 
+int delta = 0.5; // Method B
+int epsilon = 0.1; // Method C
 
 struct ccvars{
 	int tau; // time spacing between packets
@@ -205,18 +207,32 @@ void SIGPOLLHandler(int sig){
 }
 
 void update_throughput(){
-	if (mode ==1){
-		int a = 100;
+	if (cc.mode ==1){
+		if (cc.cbl < cc.tbl){ // Q(t) < Q* 
+			cc.tau = cc.tau - a;
+		}
+	
+		if (cc.cbl > cc.tbl){ // Q(t) > Q*
+			cc.tau = cc.tau + a;
+		}
+	}
+	else if (cc.mode == 2){
 		if (cc.cbl < cc.tbl){
 			cc.tau = cc.tau - a;
 		}
 	
 		if (cc.cbl > cc.tbl){
-			cc.tau = cc.tau + a;
-		}
+			cc.tau = cc.tau/delta;
+		}	
 	}
-	else if (mode == 2){
-			
+	else if (cc.mode == 3){
+		cc.tau -= epsilon * (cc.tbl - cc.cbl);
+	}
+	else if (cc.mode == 4){
+		cc.tau = cc.tau - epsilon * (cc.tbl - cc.cbl);
+	}
+	else {
+		printf("ERROR on mode\n");
 	}
 }
 
