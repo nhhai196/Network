@@ -262,7 +262,7 @@ void SIGPOLLHandler(int sig){
 			if (numbytes < payload_size){
 				printf("Exit from sigpoll\n");
 				printf("Total bytes rcv %ld, total bytes wrote %ld\n", total_bytes_rcv, total_bytes_wrote);
-				exit(0);
+				//exit(0);
 			}
 		}
 	} while (numbytes>= 0);
@@ -283,7 +283,7 @@ void SIGALRMHandler(int sig){
 	int bytes_write;
 	pthread_mutex_lock(&shared.mutex);
 	// read and then remove from buffer
-	int size = gama * payload_size;
+	int size = payload_size;
 	
 	if (shared.cbl > 0){
 		if (shared.cbl >= size){
@@ -291,9 +291,9 @@ void SIGALRMHandler(int sig){
 			if (bytes_write != size){
 				printf("ERROR on write to /dev/audio\n");
 			}
-			shared.cbl -= size;
-			strcpy(shared.au_buff, shared.au_buff+size);
-			total_bytes_wrote += size;
+			shared.cbl -= bytes_write;
+			strcpy(shared.au_buff, shared.au_buff+bytes_write);
+			total_bytes_wrote += bytes_write;
 		}
 		else {
 			bytes_write = write(fp, shared.au_buff, shared.cbl);
@@ -306,9 +306,12 @@ void SIGALRMHandler(int sig){
 		}
 		printf("Wrote %d Bytes to /dev/audio\n", bytes_write);
 		send_feedback();
-		pthread_cond_signal(&shared.notFull);
+		if (shared.cbl < shared.buf_size - payload_size){
+			pthread_cond_signal(&shared.notFull);
+		}
 	}
 	pthread_mutex_unlock(&shared.mutex);
+	signal(SIGALRM, SIGALRMHandler);
 }
 
 /*

@@ -33,7 +33,7 @@
 #define BUFFSIZE 1000
 
 // Global variables
-int a = 100; 
+int a = 1000; 
 int delta = 0.5; // Method B
 int epsilon = 0.1; // Method C
 
