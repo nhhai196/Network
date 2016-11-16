@@ -27,6 +27,7 @@
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 
+#include <errno.h>
 #include <pthread.h>
 
 #define BUFFSIZE 40000
@@ -39,7 +40,7 @@ typedef struct {
 	// enforce mutual exculsion to shared data
 	pthread_mutex_t mutex;
 	pthread_cond_t notFull; 
-	pthread_cond_t notEmpty;
+	//pthread_cond_t notEmpty;
 } sbuf_t;
 
 // Global variables
@@ -61,6 +62,11 @@ int addr_len = sizeof(their_addr);
 int fp;
 long total_bytes_rcv = 0;
 long total_bytes_wrote =0;
+struct timeval start, end; 
+int flags = 0;
+int fd_log;
+char * logc ;
+char * logfilec;
 
 // Function declarations
 void SIGPOLLHandler(int sig);
@@ -96,6 +102,7 @@ int main(int argc, char * argv[]){
 	gama = atoi(argv[6]);
 	buf_sz = 1024 * atoi(argv[7]); // Bytes
 	target_buf = 1024 * atoi(argv[8]); // Bytes
+	logfilec = argv[9];
 	strcpy(filename, argv[10]);
 	mu = (int) (1000000/gama); // micro seconds
 	
@@ -173,6 +180,12 @@ int main(int argc, char * argv[]){
 		perror("ERROR on binding");
 		exit(1);
 	}
+
+	// Create log file 
+	fd_log = open(logfilec, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+	if (fd_log == -1){
+		perror("Failed to create log file\n");	
+	}
 	
 	struct sigaction psa;
 	psa.sa_handler = SIGPOLLHandler;
@@ -210,7 +223,7 @@ int main(int argc, char * argv[]){
 	their_addr.sin_addr = *((struct in_addr *)serv_ip->h_addr);
 	bzero(&(their_addr.sin_zero), 8); // zero the rest of the struct
 	
-	// TODO : sleep 2.5 seconds
+	// sleep 2.5 seconds for prefetch
 	prefetch();
 	printf(" CBL after prefetch %d\n", shared.cbl);
 	
@@ -221,26 +234,54 @@ int main(int argc, char * argv[]){
 		exit(1);
 	}
 	
-	printf("MU is %d\n", mu);
+
 	ualarm(mu, mu);
 	signal(SIGALRM, SIGALRMHandler);
 	while(1);
 }
 
+// Function to compute elapsed time in seconds
+double elapsed_time(struct timeval start, struct timeval end){
+  double result, sec, usec;
+  sec = (end.tv_sec - start.tv_sec);	
+  usec = (end.tv_usec - start.tv_usec);
+  //printf("sec is %lld, usec is %lld\n", sec, usec);
+  result =  sec + usec/1000000; 
+	   
+  return result;
+}
+
 void SIGPOLLHandler(int sig){
 	//printf("SIGPOLL with sig = %d\n", sig);
 	int numbytes, bytes_copied ;
-	char buffer[payload_size];
-	struct sockaddr_in serv_add;
+	double elapsed;
+
 	do{
+		char buffer[payload_size];
+		struct sockaddr_in serv_add;
 		memset(buffer, 0, payload_size);
-		memset((char *) &serv_add, 0, addr_len);
+		memset((char *) &serv_add, 0, addr_len);	
+		if (!flags){
+			gettimeofday(&start, NULL);
+			logc = (char*) malloc(10000000);
+			flags = 1;		
+		}
 	
 		// Get the audio packet
 		numbytes = recvfrom(sd_to_rcv, buffer, payload_size, 0, (struct sockaddr*) &serv_add, &addr_len);
+		
+		// Get time stamp after receiving
+		gettimeofday(&end, NULL);
+		elapsed = elapsed_time(start, end);
+		if (numbytes < 0){
+			if (errno != EWOULDBLOCK){
+				printf("ERROR %d on recvfrom\n", errno);
+			}
+		}
+
 		if (numbytes > 0){
 			bytes_copied = 0;
-			printf("Received an audio packet of length %d, %d\n", numbytes, payload_size);
+			printf("Received an audio packet of length %d\n", numbytes);
 			pthread_mutex_lock(&shared.mutex);
 
 			if (shared.cbl >= shared.buf_size - numbytes){
@@ -254,6 +295,12 @@ void SIGPOLLHandler(int sig){
 					bytes_copied++;
 				}
 			}
+
+			char temp[100];
+			memset(temp, 0, 100);
+			sprintf(temp, "%f: %d\n", elapsed, shared.cbl);
+			strcat(logc, temp);
+
 			printf("Copied %d Bytes to audio buffer\n", bytes_copied);
 			send_feedback();	
 			pthread_mutex_unlock(&shared.mutex);
@@ -262,7 +309,10 @@ void SIGPOLLHandler(int sig){
 			if (numbytes < payload_size){
 				printf("Exit from sigpoll\n");
 				printf("Total bytes rcv %ld, total bytes wrote %ld\n", total_bytes_rcv, total_bytes_wrote);
-				//exit(0);
+				write(fd_log, logc, strlen(logc));
+				pthread_mutex_destroy(&shared.mutex); 
+				close(fd_log);
+				exit(0);
 			}
 		}
 	} while (numbytes>= 0);
@@ -305,7 +355,7 @@ void SIGALRMHandler(int sig){
 			memset(shared.au_buff, 0, shared.buf_size);
 		}
 		printf("Wrote %d Bytes to /dev/audio\n", bytes_write);
-		send_feedback();
+		//send_feedback();
 		if (shared.cbl < shared.buf_size - payload_size){
 			pthread_cond_signal(&shared.notFull);
 		}
@@ -330,7 +380,7 @@ void initialize(){
 	shared.cbl = 0;
 	pthread_mutex_init(&shared.mutex, NULL); 
 	pthread_cond_init(&shared.notFull, NULL);
-	pthread_cond_init(&shared.notEmpty, NULL);
+	//pthread_cond_init(&shared.notEmpty, NULL);
 }
 	
 void prefetch(){

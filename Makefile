@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-I.
+CFLAGS=-I -lthread.
 DEPS = header.h
 OBJ = audiolisten.o audiostreamd.o
 TARGET = audiolisten audiostreamd
