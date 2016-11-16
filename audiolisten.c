@@ -38,6 +38,8 @@ typedef struct {
 	
 	// enforce mutual exculsion to shared data
 	pthread_mutex_t mutex;
+	pthread_cond_t notFull; 
+	pthread_cond_t notEmpty;
 } sbuf_t;
 
 // Global variables
@@ -270,7 +272,7 @@ void send_feedback(){
 }
 
 void SIGALRMHandler(int sig){
-	printf("SIGALRM with sig = %d\n", sig);
+	//printf("SIGALRM with sig = %d\n", sig);
 	int bytes_write;
 	pthread_mutex_lock(&shared.mutex);
 	// read and then remove from buffer
@@ -315,6 +317,8 @@ void initialize(){
 	memset(shared.au_buff, 0, shared.buf_size);
 	shared.cbl = 0;
 	pthread_mutex_init(&shared.mutex, NULL); 
+	pthread_cond_init(&shared.notFull, NULL);
+	pthread_cond_init(&shared.notEmpty, NULL);
 }
 	
 	

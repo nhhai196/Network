@@ -344,9 +344,9 @@ void handle_single_client(char pathname[], int serv_port, int cli_port){
 		printf("Sent %d bytes to client with tau =%d\n", bytes_read, cc.tau);
 		// Sleep between sucessive packets
 		ret = usleep(cc.tau);
-		printf("sleep returns %d\n", ret);
+		//printf("sleep returns %d\n", ret);
 		if (ret == -1){
-			printf("%d\n", errno);
+			//printf("%d\n", errno);
 			if (errno == EINTR){
 			continue;
 			}
