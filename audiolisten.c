@@ -226,7 +226,7 @@ int main(int argc, char * argv[]){
 }
 
 void SIGPOLLHandler(int sig){
-	printf("SIGPOLL with sig = %d\n", sig);
+	//printf("SIGPOLL with sig = %d\n", sig);
 	int numbytes, bytes_copied = 0;
 	char buffer[payload_size];
 	struct sockaddr_in serv_add;
@@ -296,9 +296,10 @@ void SIGALRMHandler(int sig){
 		memset(shared.au_buff, 0, shared.buf_size);
 
 	}
-	
+	//if (bytes_write > 0){
 	printf("Wrote %d Bytes to /dev/audio\n", bytes_write);
 	send_feedback();
+	//}
 	pthread_mutex_unlock(&shared.mutex);
 }
 

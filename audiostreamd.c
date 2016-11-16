@@ -187,7 +187,7 @@ int main(int argc, char * argv[]){
 }
 
 void SIGPOLLHandler(int sig){
-	printf("SIGPOLL\n");
+	//printf("SIGPOLL\n");
 	int numbytes;
 	int size = cc.payload_size;
 	char buffer[size];
@@ -198,11 +198,11 @@ void SIGPOLLHandler(int sig){
 	
 		// Get the feedback packet
 		numbytes = recvfrom(cc.sd_to_rcv, buffer, size, 0, (struct sockaddr*) &serv_add, &addr_len);
-		//if (numbytes > 0){
+		if (numbytes > 0){
 		printf("Received a feedback packet: %s\n", buffer);
 		read_feedback(buffer);
 		update_throughput();
-		//}
+		}
 	//} while (numbytes >= 0);
 }
 
