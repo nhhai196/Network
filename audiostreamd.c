@@ -223,6 +223,9 @@ void update_throughput(){
 	else if (cc.mode == 2){
 		if (cc.cbl < cc.tbl){
 			cc.tau = cc.tau - a;
+			if (cc.tau < 0){
+				cc.tau = 1;
+			}
 		}
 	
 		if (cc.cbl > cc.tbl){
