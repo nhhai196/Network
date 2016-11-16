@@ -57,6 +57,8 @@ struct hostent * serv_ip; // server IP
 struct sockaddr_in their_addr;
 int addr_len = sizeof(their_addr);
 int fp;
+long total_bytes_rcv = 0;
+long total_bytes_wrote =0;
 
 // Function declarations
 void SIGPOLLHandler(int sig);
@@ -243,11 +245,14 @@ void SIGPOLLHandler(int sig){
 					bytes_copied++;
 				}
 			}
-			printf("Copied % Bytes to audio buffer\n", bytes_copied);
+			printf("Copied %d Bytes to audio buffer\n", bytes_copied);
 			send_feedback();	
 			pthread_mutex_unlock(&shared.mutex);
+			total_bytes_rcv += numbytes;
+
 			if (numbytes < payload_size){
 				printf("Exit from sigpoll\n");
+				printf("Total bytes rcv %ld, total bytes wrote %ld\n", total_bytes_rcv, total_bytes_wrote);
 				exit(0);
 			}
 		}
@@ -277,17 +282,20 @@ void SIGALRMHandler(int sig){
 		}
 		shared.cbl -= size;
 		strcpy(shared.au_buff, shared.au_buff+size);
+		total_bytes_wrote += size;
 	}
 	else {
 		bytes_write = write(fp, shared.au_buff, shared.cbl);
 		if (bytes_write != shared.cbl){
 			printf("ERROR on write to /dev/audio\n");
 		}
+		total_bytes_wrote += shared.cbl;
 		shared.cbl = 0;
 		memset(shared.au_buff, 0, shared.buf_size);
+
 	}
 	
-	printf("Wrote % Bytes to /dev/audio\n", bytes_write);
+	printf("Wrote %d Bytes to /dev/audio\n", bytes_write);
 	send_feedback();
 	pthread_mutex_unlock(&shared.mutex);
 }
