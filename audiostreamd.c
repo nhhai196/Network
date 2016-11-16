@@ -52,6 +52,7 @@ struct ccvars{
 
 int addr_len;
 struct ccvars cc; 
+long total_bytes_sent;
 
 //Function declarations
 void SIGPOLLHandler();
@@ -319,6 +320,7 @@ void handle_single_client(char pathname[], int serv_port, int cli_port){
 	}
 
 	int bytes_read, bytes_write, ret;
+	total_bytes_sent = 0;
 	// Loops to read data, each time read size bytes
 	while (1) {
 		bzero(buf, size);
@@ -341,7 +343,8 @@ void handle_single_client(char pathname[], int serv_port, int cli_port){
 		if (bytes_write != bytes_read){
 			perror("ERROR: cannot write bytes read");
 		}
-		printf("Sent %d bytes to client with tau =%d\n", bytes_read, cc.tau);
+		total_bytes_sent += bytes_write;
+		printf("Sent %d bytes to client with tau =%d, total = %ld\n", bytes_read, cc.tau, total_bytes_sent);
 		// Sleep between sucessive packets
 		ret = usleep(cc.tau);
 		//printf("sleep returns %d\n", ret);

@@ -239,6 +239,10 @@ void SIGPOLLHandler(int sig){
 		if (numbytes > 0){
 			printf("Received an audio packet of length %d, %d\n", numbytes, payload_size);
 			pthread_mutex_lock(&shared.mutex);
+
+			if (shared.cbl == shared.buf_size){
+				pthread_cond_wait(&shared.notFull, &shared.mutex);
+			}
 			//write to buffer
 			int i = 0;
 			for (i = 0; i < numbytes; i++){
@@ -277,29 +281,30 @@ void SIGALRMHandler(int sig){
 	pthread_mutex_lock(&shared.mutex);
 	// read and then remove from buffer
 	int size = gama * payload_size;
-	if (shared.cbl >= size){
-		bytes_write = write(fp, shared.au_buff, size);
-		if (bytes_write != size){
-			printf("ERROR on write to /dev/audio\n");
+	
+	if (shared.cbl > 0){
+		if (shared.cbl >= size){
+			bytes_write = write(fp, shared.au_buff, size);
+			if (bytes_write != size){
+				printf("ERROR on write to /dev/audio\n");
+			}
+			shared.cbl -= size;
+			strcpy(shared.au_buff, shared.au_buff+size);
+			total_bytes_wrote += size;
 		}
-		shared.cbl -= size;
-		strcpy(shared.au_buff, shared.au_buff+size);
-		total_bytes_wrote += size;
-	}
-	else {
-		bytes_write = write(fp, shared.au_buff, shared.cbl);
-		if (bytes_write != shared.cbl){
-			printf("ERROR on write to /dev/audio\n");
+		else {
+			bytes_write = write(fp, shared.au_buff, shared.cbl);
+			if (bytes_write != shared.cbl){
+				printf("ERROR on write to /dev/audio\n");
+			}
+			total_bytes_wrote += shared.cbl;
+			shared.cbl = 0;
+			memset(shared.au_buff, 0, shared.buf_size);
 		}
-		total_bytes_wrote += shared.cbl;
-		shared.cbl = 0;
-		memset(shared.au_buff, 0, shared.buf_size);
-
+		printf("Wrote %d Bytes to /dev/audio\n", bytes_write);
+		send_feedback();
+		pthread_cond_signal(&shared.notFull);
 	}
-	//if (bytes_write > 0){
-	printf("Wrote %d Bytes to /dev/audio\n", bytes_write);
-	send_feedback();
-	//}
 	pthread_mutex_unlock(&shared.mutex);
 }
 
