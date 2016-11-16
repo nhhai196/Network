@@ -67,6 +67,7 @@ void SIGPOLLHandler(int sig);
 void SIGALRMHandler(int sig);
 void send_feedback();
 void initialize();
+void prefetch();
 
 int main(int argc, char * argv[]){
 	// Variable declrations and initializations
@@ -210,7 +211,8 @@ int main(int argc, char * argv[]){
 	bzero(&(their_addr.sin_zero), 8); // zero the rest of the struct
 	
 	// TODO : sleep 2.5 seconds
-	sleep(2);
+	prefetch();
+	printf(" CBL after prefetch %d\n", shared.cbl);
 	
 	// Open file /dev/audio
 	fp = open("/dev/audio", O_RDWR, 0);
@@ -227,7 +229,7 @@ int main(int argc, char * argv[]){
 
 void SIGPOLLHandler(int sig){
 	//printf("SIGPOLL with sig = %d\n", sig);
-	int numbytes, bytes_copied = 0;
+	int numbytes, bytes_copied ;
 	char buffer[payload_size];
 	struct sockaddr_in serv_add;
 	do{
@@ -237,10 +239,11 @@ void SIGPOLLHandler(int sig){
 		// Get the audio packet
 		numbytes = recvfrom(sd_to_rcv, buffer, payload_size, 0, (struct sockaddr*) &serv_add, &addr_len);
 		if (numbytes > 0){
+			bytes_copied = 0;
 			printf("Received an audio packet of length %d, %d\n", numbytes, payload_size);
 			pthread_mutex_lock(&shared.mutex);
 
-			if (shared.cbl == shared.buf_size){
+			if (shared.cbl >= shared.buf_size - numbytes){
 				pthread_cond_wait(&shared.notFull, &shared.mutex);
 			}
 			//write to buffer
@@ -294,10 +297,10 @@ void SIGALRMHandler(int sig){
 		}
 		else {
 			bytes_write = write(fp, shared.au_buff, shared.cbl);
-			if (bytes_write != shared.cbl){
-				printf("ERROR on write to /dev/audio\n");
-			}
-			total_bytes_wrote += shared.cbl;
+			//if (bytes_write != shared.cbl){
+			//	printf("ERROR on write to /dev/audio\n");
+			//}
+			total_bytes_wrote += bytes_write;
 			shared.cbl = 0;
 			memset(shared.au_buff, 0, shared.buf_size);
 		}
@@ -327,6 +330,14 @@ void initialize(){
 	pthread_cond_init(&shared.notEmpty, NULL);
 }
 	
-	
-
+void prefetch(){
+	struct timespec start, remain;
+	start.tv_sec = 2; 
+	start.tv_nsec = 5 * 10^8; 
+	while (nanosleep(&start,&remain) == -1){	
+		start = remain;
+		remain.tv_sec = 0;
+		remain.tv_nsec = 0;
+	}  		
+}
 

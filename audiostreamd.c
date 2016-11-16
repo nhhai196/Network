@@ -174,7 +174,7 @@ int main(int argc, char * argv[]){
 		}
 		// Parent process
 		close(new_tcp_sd);
-		/*while (child_count){
+		while (child_count){
 			processID = waitpid((pid_t) - 1, NULL, WNOHANG); 		
 			if (processID ==0){
 				break; // No zombie to wait
@@ -182,35 +182,38 @@ int main(int argc, char * argv[]){
 			else if (processID > 0){
 				child_count--;
 			}
-		} */
+		}
 	}
 	
 }
 
 void SIGPOLLHandler(int sig){
-	//printf("SIGPOLL\n");
+	printf("SIGPOLL\n");
 	int numbytes;
 	int size = cc.payload_size;
 	char buffer[size];
 	struct sockaddr_in serv_add;
-	//do{
+	do{
 		memset(buffer, 0, size);
 		memset((char *) &serv_add, 0, addr_len);
 	
 		// Get the feedback packet
 		numbytes = recvfrom(cc.sd_to_rcv, buffer, size, 0, (struct sockaddr*) &serv_add, &addr_len);
 		if (numbytes > 0){
-		printf("Received a feedback packet: %s\n", buffer);
-		read_feedback(buffer);
-		update_throughput();
+			printf("Received a feedback packet: %s\n", buffer);
+			read_feedback(buffer);
+			update_throughput();
 		}
-	//} while (numbytes >= 0);
+	} while (numbytes > 0);
 }
 
 void update_throughput(){
 	if (cc.mode ==1){
 		if (cc.cbl < cc.tbl){ // Q(t) < Q* 
 			cc.tau = cc.tau - a;
+			if (cc.tau < 0){
+				cc.tau = 1;
+			}
 		}
 	
 		if (cc.cbl > cc.tbl){ // Q(t) > Q*
@@ -245,6 +248,17 @@ void read_feedback(char buffer[]){
 	cc.tbl = atoi(ptr);
 	ptr = strtok(NULL, " ");
 	cc.gamma = atoi(ptr);
+}
+
+void packet_sleep(int tau){
+	struct timespec start, remain;
+	start.tv_sec = 0; 
+	start.tv_nsec = 1000 * tau; 
+	while (nanosleep(&start,&start) == -1){	
+		//start = remain;
+		//remain.tv_sec = 0;
+		//remain.tv_nsec = 0;
+	}  		
 }
 
 void handle_single_client(char pathname[], int serv_port, int cli_port){
@@ -319,7 +333,7 @@ void handle_single_client(char pathname[], int serv_port, int cli_port){
 		exit(1);
 	}
 
-	int bytes_read, bytes_write, ret;
+	int bytes_read, bytes_write;
 	total_bytes_sent = 0;
 	// Loops to read data, each time read size bytes
 	while (1) {
@@ -346,14 +360,8 @@ void handle_single_client(char pathname[], int serv_port, int cli_port){
 		total_bytes_sent += bytes_write;
 		printf("Sent %d bytes to client with tau =%d, total = %ld\n", bytes_read, cc.tau, total_bytes_sent);
 		// Sleep between sucessive packets
-		ret = usleep(cc.tau);
-		//printf("sleep returns %d\n", ret);
-		if (ret == -1){
-			//printf("%d\n", errno);
-			if (errno == EINTR){
-			continue;
-			}
-		} 
+		//printf("tau is %d \n", cc.tau);
+		packet_sleep(cc.tau);
 	}
 	close(fd);
 	close(cc.sd_to_send);
