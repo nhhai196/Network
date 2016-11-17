@@ -33,12 +33,15 @@
 #define BUFFSIZE 1000
 
 // Global variables
-int a = 1000; 
-int delta = 0.5; // Method B
-int epsilon = 0.1; // Method C
+int a = 1; 
+double delta = 0.5; // Method B
+double epsilon = 0.00002; // Method C
+double eps = 0.0005; // Method D
+double peta = 0.4; // Method D
 
 struct ccvars{
-	int tau; // time spacing between packets
+	double lambda;
+	double tau; // time spacing between packets
 	int tbl; // target buffer level 
 	int cbl; // current buffer level 
 	int payload_size;
@@ -61,6 +64,7 @@ void update_throughput();
 void initialize();
 void handle_single_client(char pathname[], int serv_port, int cli_port, char * logs);
 void packet_sleep();
+double elapsed_time(struct timeval start, struct timeval end);
 
 int main(int argc, char * argv[]){
 	// Variable declrations and initializations
@@ -86,7 +90,10 @@ int main(int argc, char * argv[]){
 	tcp_port = atoi(argv[1]);
 	serv_udp_port = atoi(argv[2]);
 	cc.payload_size = atoi(argv[3]);
-	cc.tau = 1000* atoi(argv[4]); // micro seconds
+	cc.tau = (double)atoi(argv[4])/1000; // seconds
+	printf("tau %f\n", cc.tau);
+	//exit(0); 
+	cc.lambda = 1/cc.tau;
 	cc.mode = atoi(argv[5]);
 	
 	printf("tcp port: %d\n", tcp_port);
@@ -169,7 +176,143 @@ int main(int argc, char * argv[]){
 		child_count++;
 		if (pid == 0) { // Child process
 			printf("Check in child\n");
-			handle_single_client(pathname, serv_udp_port, cli_udp_port, argv[6]);
+			//handle_single_client(pathname, serv_udp_port, cli_udp_port, argv[6]);
+			int size = cc.payload_size;
+			struct sockaddr_in my_addr, their_addr;
+			struct timeval start, end;
+			double elapsed; 
+			char buf[size+1];
+			char * log = (char*) malloc(10000000);
+	
+			memset(log, 0, 10000000);
+			printf("Check afer log\n");
+			// Create a UDP socket for receiving the feedback
+			if ((cc.sd_to_rcv = socket(AF_INET, SOCK_DGRAM, 0)) < 0){
+				perror("ERROR on creating socket");
+				exit(1);
+			}
+
+			// zero out the structure
+			memset((char *) &my_addr, 0, addr_len);
+
+			my_addr.sin_family = AF_INET;
+			my_addr.sin_port = htons(serv_udp_port);
+			my_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+			bzero(&(my_addr.sin_zero), 8); // zero the rest of the struct
+
+			// bind socket to port 
+			if (bind(cc.sd_to_rcv, (struct sockaddr *) &my_addr, addr_len) < 0){
+				perror("ERROR on binding");
+				exit(1);
+			}
+	
+
+			// Send audio content to the client
+	
+			// Create a UDP socket for seding audio content to client
+			if ((cc.sd_to_send = socket(AF_INET, SOCK_DGRAM, 0)) < 0){
+				perror("ERROR on creating socket");
+				exit(1);
+			}
+		
+			// zero out the structure
+			memset((char *) &their_addr, 0, addr_len);
+
+			their_addr.sin_family = AF_INET;
+			their_addr.sin_port = htons(cli_udp_port);
+			their_addr.sin_addr.s_addr = cc.cli_ip;
+			bzero(&(their_addr.sin_zero), 8); // zero the rest of the struct
+	
+			printf("path name is %s\n",pathname);
+			// Open the filename to read
+			int fd = open(pathname, O_RDONLY, 0666);
+			if (fd == -1) {
+				perror("ERROR on specified file");
+				exit(1);
+			}
+
+			// Create log file 
+			int fd_log = open(argv[6], O_WRONLY | O_CREAT | O_TRUNC, 0666);
+			if (fd_log == -1){
+				perror("Failed to create log file\n");	
+			}
+
+			struct sigaction psa;
+			psa.sa_handler = SIGPOLLHandler;
+
+			if (sigaction(SIGPOLL, &psa, 0) < 0){
+				perror("sigaction() failed for SIGPOLL");
+			}
+
+			if (sigfillset(&psa.sa_mask) < 0){ 
+				perror("sigfillset() failed");
+			}
+			// No flags
+			psa.sa_flags = 0;
+
+			// We must own the socket to receive the SIGIO message
+			if (fcntl(cc.sd_to_rcv, F_SETOWN, getpid()) < 0){
+				perror("Unable to set process owner to us");
+			}
+			// Arrange for nonblocking I/O and SIGIO delivery
+			if (fcntl(cc.sd_to_rcv, F_SETFL, O_NONBLOCK | FASYNC) < 0){
+				perror("Unable to put client sock into non-blocking/async mode");
+			}
+
+			int bytes_read, bytes_write;
+			int flags = 0; // for start time 
+			total_bytes_sent = 0;
+			// Loops to read data, each time read size bytes
+			memset(buf, 0, size);
+			while (1) {
+				printf("before read\n");
+				bytes_read = read(fd, buf, size);
+				if (bytes_read < 0) {
+					printf("ERROR on reading file\n");
+					exit(1);
+				}
+		
+				if (bytes_read == 0) {
+					printf("End reading.\n");
+					break;
+				}
+		
+				// Get the start time when sending the first packet
+				if (!flags){
+					gettimeofday(&start, NULL);
+					flags = 1;
+				}
+
+				printf("before send, bytes read %d\n", bytes_read);
+				// Send back to the client
+				bytes_write = sendto(cc.sd_to_send, buf, bytes_read, 0, (struct sockaddr *) &their_addr, addr_len);
+				if (bytes_write < 0){
+					perror("ERROR: cannot write");
+				}
+				printf("bytes write %d\n", bytes_write);
+				// Get time stamp after sending
+				gettimeofday(&end, NULL);
+				elapsed = elapsed_time(start, end);
+				char temp[100];
+				memset(temp, 0, 100);
+				sprintf(temp, "%f %f\n", elapsed, cc.lambda);
+				strcat(log, temp);
+
+				total_bytes_sent += bytes_write;
+				printf("Sent %d bytes to client with tau =%f, total = %ld\n", bytes_read, cc.tau, total_bytes_sent);
+				// Sleep between sucessive packets
+				printf("before sleep\n");
+				packet_sleep(cc.tau);
+				printf("Done sleeping\n");
+				memset(buf, 0, size);
+			}
+			printf("Total bytes sent = %ld\n", total_bytes_sent);
+			// Write to log file
+			write(fd_log, log, strlen(log));
+			close(fd_log); 
+			close(fd);
+			close(cc.sd_to_send);
+			close(cc.sd_to_rcv);
 			printf("Child done\n");
 			exit(0);
 		}
@@ -216,37 +359,41 @@ void SIGPOLLHandler(int sig){
 void update_throughput(){
 	if (cc.mode ==1){
 		if (cc.cbl < cc.tbl){ // Q(t) < Q* 
-			cc.tau = cc.tau - a;
-			if (cc.tau < 0){
-				cc.tau = 1;
-			}
+			cc.lambda = cc.lambda + a;
 		}
 	
 		if (cc.cbl > cc.tbl){ // Q(t) > Q*
-			cc.tau = cc.tau + a;
+			cc.lambda = cc.lambda - a;
+			if (cc.lambda < 0){
+				cc.lambda = 0.1;
+			}		
 		}
 	}
 	else if (cc.mode == 2){
 		if (cc.cbl < cc.tbl){
-			cc.tau = cc.tau - a;
-			if (cc.tau <= 0){
-				cc.tau = 1;
-			}
+			cc.lambda = cc.lambda + a;
 		}
 	
 		if (cc.cbl > cc.tbl){
-			cc.tau = cc.tau/delta;
+			cc.lambda *= delta; 
 		}	
 	}
 	else if (cc.mode == 3){
-		cc.tau -= epsilon * (cc.tbl - cc.cbl);
+		cc.lambda += epsilon * (cc.tbl - cc.cbl);
+		if (cc.lambda <= 0.0)
+			cc.lambda = 0.1;
 	}
 	else if (cc.mode == 4){
-		cc.tau = cc.tau - epsilon * (cc.tbl - cc.cbl);
+		cc.lambda += eps * (cc.tbl - cc.cbl) - peta * (cc.lambda - cc.gamma);
+		if (cc.lambda <= 0)
+			cc.lambda = 0.1;
 	}
 	else {
 		printf("ERROR on mode\n");
 	}
+
+	cc.tau = 1/cc.lambda;
+	printf("updated tau = %f\n", cc.tau);
 }
 
 void read_feedback(char buffer[]){
@@ -257,18 +404,23 @@ void read_feedback(char buffer[]){
 	cc.tbl = atoi(ptr);
 	ptr = strtok(NULL, " ");
 	cc.gamma = atoi(ptr);
+	printf("Done reading feedback cbl = %d, tbl = %d, gamma = %d\n", cc.cbl, cc.tbl, cc.gamma);
 }
 
-void packet_sleep(int tau){
+void packet_sleep(double tau){
 	struct timespec start, remain;
-	start.tv_sec = 0; 
-	start.tv_nsec = 1000 * tau; 
-	while (nanosleep(&start,&remain) == -1){	
+	start.tv_sec = (int)tau; 
+	start.tv_nsec = 1000000000 * tau; 
+	printf("tau is %f, Sec is %ld, nano = %ld\n", tau, start.tv_sec, start.tv_nsec);
+	//exit(1);
+	printf("In packet sleep\n");
+	while (nanosleep(&start,&remain) != 0){	
 		start = remain;
 		remain.tv_sec = 0;
 		remain.tv_nsec = 0;
-		//printf("Interrupted by signal\n");
-	}  		
+		printf("Interrupted by signal\n");
+	}
+	printf("Packet sleep returns\n");  		
 }
 
 // Function to compute elapsed time in seconds
@@ -282,6 +434,7 @@ double elapsed_time(struct timeval start, struct timeval end){
   return result;
 }
 
+/*
 void handle_single_client(char pathname[], int serv_port, int cli_port, char * logs){
 	int size = cc.payload_size;
 	struct sockaddr_in my_addr, their_addr;
@@ -312,6 +465,31 @@ void handle_single_client(char pathname[], int serv_port, int cli_port, char * l
 		exit(1);
 	}
 	
+
+	// Send audio content to the client
+	
+	// Create a UDP socket for seding audio content to client
+	if ((cc.sd_to_send = socket(AF_INET, SOCK_DGRAM, 0)) < 0){
+		perror("ERROR on creating socket");
+		exit(1);
+	}
+		
+	// zero out the structure
+	memset((char *) &their_addr, 0, addr_len);
+
+	their_addr.sin_family = AF_INET;
+	their_addr.sin_port = htons(cli_port);
+	their_addr.sin_addr.s_addr = cc.cli_ip;
+	bzero(&(their_addr.sin_zero), 8); // zero the rest of the struct
+	
+	printf("path name is %s\n",pathname);
+	// Open the filename to read
+	int fd = open(pathname, O_RDONLY, 0666);
+	if (fd == -1) {
+		perror("ERROR on specified file");
+		exit(1);
+	}
+
 	// Create log file 
 	int fd_log = open(logs, O_WRONLY | O_CREAT | O_TRUNC, 0666);
 	if (fd_log == -1){
@@ -338,30 +516,6 @@ void handle_single_client(char pathname[], int serv_port, int cli_port, char * l
 	// Arrange for nonblocking I/O and SIGIO delivery
 	if (fcntl(cc.sd_to_rcv, F_SETFL, O_NONBLOCK | FASYNC) < 0){
 		perror("Unable to put client sock into non-blocking/async mode");
-	}
-	
-	// Send audio content to the client
-	
-	// Create a UDP socket for seding audio content to client
-	if ((cc.sd_to_send = socket(AF_INET, SOCK_DGRAM, 0)) < 0){
-		perror("ERROR on creating socket");
-		exit(1);
-	}
-		
-	// zero out the structure
-	memset((char *) &their_addr, 0, addr_len);
-
-	their_addr.sin_family = AF_INET;
-	their_addr.sin_port = htons(cli_port);
-	their_addr.sin_addr.s_addr = cc.cli_ip;
-	bzero(&(their_addr.sin_zero), 8); // zero the rest of the struct
-	
-	printf("path name is %s\n",pathname);
-	// Open the filename to read
-	int fd = open(pathname, O_RDONLY, 0666);
-	if (fd == -1) {
-		perror("ERROR on specified file");
-		exit(1);
 	}
 
 	int bytes_read, bytes_write;
@@ -400,12 +554,13 @@ void handle_single_client(char pathname[], int serv_port, int cli_port, char * l
 		elapsed = elapsed_time(start, end);
 		char temp[100];
 		memset(temp, 0, 100);
-		sprintf(temp, "%f: %d\n", elapsed, cc.tau);
+		sprintf(temp, "%f %d\n", elapsed, cc.tau);
 		strcat(log, temp);
 
 		total_bytes_sent += bytes_write;
 		printf("Sent %d bytes to client with tau =%d, total = %ld\n", bytes_read, cc.tau, total_bytes_sent);
 		// Sleep between sucessive packets
+		printf("before sleep\n");
 		packet_sleep(cc.tau);
 		printf("Done sleeping\n");
 		memset(buf, 0, size);
@@ -416,7 +571,7 @@ void handle_single_client(char pathname[], int serv_port, int cli_port, char * l
 	close(fd_log); 
 	close(fd);
 	close(cc.sd_to_send);
-	//close(cc.sd_to_rcv);
-}
+	close(cc.sd_to_rcv);
+} */
 
 

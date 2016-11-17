@@ -252,7 +252,7 @@ double elapsed_time(struct timeval start, struct timeval end){
 }
 
 void SIGPOLLHandler(int sig){
-	//printf("SIGPOLL with sig = %d\n", sig);
+	printf("SIGPOLL with sig = %d\n", sig);
 	int numbytes, bytes_copied ;
 	double elapsed;
 
@@ -285,7 +285,7 @@ void SIGPOLLHandler(int sig){
 			pthread_mutex_lock(&shared.mutex);
 
 			if (shared.cbl >= shared.buf_size - numbytes){
-				pthread_cond_wait(&shared.notFull, &shared.mutex);
+				//pthread_cond_wait(&shared.notFull, &shared.mutex);
 			}
 			//write to buffer
 			int i = 0;
@@ -298,7 +298,7 @@ void SIGPOLLHandler(int sig){
 
 			char temp[100];
 			memset(temp, 0, 100);
-			sprintf(temp, "%f: %d\n", elapsed, shared.cbl);
+			sprintf(temp, "%f %d\n", elapsed, shared.cbl);
 			strcat(logc, temp);
 
 			printf("Copied %d Bytes to audio buffer\n", bytes_copied);
@@ -329,7 +329,7 @@ void send_feedback(){
 }
 
 void SIGALRMHandler(int sig){
-	//printf("SIGALRM with sig = %d\n", sig);
+	printf("SIGALRM with sig = %d\n", sig);
 	int bytes_write;
 	pthread_mutex_lock(&shared.mutex);
 	// read and then remove from buffer
@@ -357,7 +357,7 @@ void SIGALRMHandler(int sig){
 		printf("Wrote %d Bytes to /dev/audio\n", bytes_write);
 		//send_feedback();
 		if (shared.cbl < shared.buf_size - payload_size){
-			pthread_cond_signal(&shared.notFull);
+			//pthread_cond_signal(&shared.notFull);
 		}
 	}
 	pthread_mutex_unlock(&shared.mutex);
