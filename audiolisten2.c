@@ -67,6 +67,8 @@ int flags = 0;
 int fd_log;
 char * logc ;
 char * logfilec;
+int k;
+int flag;
 
 // Function declarations
 void SIGPOLLHandler(int sig);
@@ -84,8 +86,8 @@ int main(int argc, char * argv[]){
 	struct sockaddr_in my_addr;
 
 	// Check whether the number of input arguments is correct
-	if (argc != 11){
-		printf("Usage: ./audiolisten server-ip server-tcp-port client-udp-port payload-size playback-del gama buf-sz target-buf logfile-c filename\n");
+	if (argc != 13){
+		printf("Usage: ./audiolisten server-ip server-tcp-port client-udp-port payload-size playback-del gama buf-sz target-buf logfile-c filename k flag\n");
 		exit(0);
 	}
 	
@@ -104,6 +106,8 @@ int main(int argc, char * argv[]){
 	target_buf = 1024 * atoi(argv[8]); // Bytes
 	logfilec = argv[9];
 	strcpy(filename, argv[10]);
+	k = atoi(argv[11]);
+	flag = atoi(argv[12]);
 	mu = (int) (1000000/gama); // micro seconds
 	
 	printf("tcp port: %d\n", tcp_port);

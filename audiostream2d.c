@@ -47,6 +47,7 @@ struct ccvars{
 	int payload_size;
 	int mode; 
 	int gamma; // playback rate
+	int audiobuf; 
 	int a; 
 	int sd_to_send; // socket to send message
 	int sd_to_rcv; // socket for receiving message
@@ -81,8 +82,8 @@ int main(int argc, char * argv[]){
 	addr_len = sizeof(tserv_add);
 
 	// Check whether the number of input arguments is correct
-	if (argc != 7){
-		printf("Usage: audiostreamd tcp-port udp-port payload-size packet-spacing mode logfile-s\n");
+	if (argc != 8){
+		printf("Usage: audiostreamd tcp-port udp-port payload-size packet-spacing mode logfile-s audiobuf\n");
 		exit(0);
 	}
 	
