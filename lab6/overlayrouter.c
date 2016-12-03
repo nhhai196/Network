@@ -56,7 +56,7 @@ int isFirst(char * ptr){
 	struct in_addr **addr_list;
 	int i;
 	
-	gethostname(hostname, sizeof(hostname));
+	gethostname(hostname, 100* sizeof(hostname));
 	printf("Host name is %s\n", hostname);
 	
 	if ((he = gethostbyname(hostname)) == NULL){
