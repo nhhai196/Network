@@ -59,7 +59,7 @@ int isFirst(char * ptr){
 	gethostname(hostname, sizeof(hostname));
 	printf("Host name is %s\n", hostname);
 	
-	if ((he = gethostbyname()) == NULL){
+	if ((he = gethostbyname(hostname)) == NULL){
 		perror("gethostbyname");
 	}
 	
