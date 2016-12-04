@@ -58,9 +58,9 @@ int main(int argc, char * argv[]){
 	// zero out the structure
 	memset((char *) &their_addr, 0, sizeof(their_addr));
 
-	if ((he=gethostbyname(argv[1])) == NULL) { // get the host info
-	perror("gethostbyname");
-	exit(1);
+	if ((he=gethostbyname(argv[argc-3])) == NULL) { // get the host info
+		perror("gethostbyname");
+		exit(1);
 	}
 
 	their_addr.sin_family = AF_INET;
