@@ -146,6 +146,7 @@ int main(int argc, char * argv[]){
 		}
 		
 		printf("Received request %s from %s\n", buffer, inet_ntoa(cli_add.sin_addr));
+		printf("On port %d", cli_add.sin_port);
 
 		int pid = fork();
 		if (pid < 0){
@@ -243,7 +244,7 @@ int main(int argc, char * argv[]){
 					perror("ERROR on recvfrom");
 					exit(0);
 				}
-				printf("Message is %s\n from %s", buffer, inet_ntoa(cli_add.sin_addr));
+				printf("Received message %s\n from %s", buffer, inet_ntoa(cli_add.sin_addr));
 				saved1 = saved2;
 				saved2 = cli_add;
 
