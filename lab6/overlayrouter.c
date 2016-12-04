@@ -145,8 +145,7 @@ int main(int argc, char * argv[]){
 			exit(0);
 		}
 		
-		printf("Received request %s from %s\n", buffer, inet_ntoa(cli_add.sin_addr));
-		printf("On port %d", cli_add.sin_port);
+		printf("Received request %s from %s on port\n", buffer, inet_ntoa(cli_add.sin_addr), cli_add.sin_port);
 
 		int pid = fork();
 		if (pid < 0){
