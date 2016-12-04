@@ -67,7 +67,7 @@ int main(int argc, char * argv[]){
 	their_addr.sin_port = htons(atoi(argv[argc-2]));
 	their_addr.sin_addr = *((struct in_addr *)he->h_addr);
 	bzero(&(their_addr.sin_zero), 8); // zero the rest of the struct
-	printf("Port : %ld", their_addr.sin_port);
+	printf("Port : %s", argv[arc-2]);
 	
 	// Zero out buffer
 	memset(buffer, 0, BUFFSIZE);
