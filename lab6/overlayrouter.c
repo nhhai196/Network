@@ -170,7 +170,7 @@ int main(int argc, char * argv[]){
 			}
 
 			srand(time(NULL));
-			newport = 10000 + rand()%90000;
+			newport = 10000 + rand()%40000+ rand()%40000;
 			memset(buf, 0, BUFSIZE);
 			sprintf(buf, "%d", newport);
 
@@ -199,7 +199,7 @@ int main(int argc, char * argv[]){
 				perror("ERROR on binding");
 				exit(1);
 			}
-			printf("Server on port %d...\n", newport);
+			printf("Server on new port %d...\n", newport);
 			
 			// Send a UDP packet containing stripped payload to the next router if not the last router
 			if (count != 3){
@@ -234,7 +234,6 @@ int main(int argc, char * argv[]){
 				printf("Sent stripped payload to the next router\n");
 			}
 			
-			printf("Start waiting on new UDP socket binded to the new port\n");
 			while(1){
 				memset(buffer,0, BUFSIZE);
 				memset((char *) &cli_add, 0, sizeof(cli_add));
