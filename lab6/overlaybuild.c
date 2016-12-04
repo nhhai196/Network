@@ -43,7 +43,7 @@ int main(int argc, char * argv[]){
 
 	len = sizeof(their_addr);
 	
-	// Check whether thu number of input arguments is correct
+	// Check whether the number of input arguments is correct
 	if (argc < 6){
 		printf("Usage: ./overlaybuild dst-IP dst-port routerk-IP ... router2-IP router1-IP overlay-port build-port\n");
 		exit(0);
@@ -64,7 +64,7 @@ int main(int argc, char * argv[]){
 	}
 
 	their_addr.sin_family = AF_INET;
-	their_addr.sin_port = htons(atoi(argv[2]));
+	their_addr.sin_port = htons(atoi(argv[argc-2]));
 	their_addr.sin_addr = *((struct in_addr *)he->h_addr);
 	bzero(&(their_addr.sin_zero), 8); // zero the rest of the struct
 
@@ -72,29 +72,29 @@ int main(int argc, char * argv[]){
 	memset(buffer, 0, BUFFSIZE);
 	
 	// Create payload $dst-IP$dst-port$routerk-IP$...$router2-IP$router1-IP$
-	sprintf(buffer, "$%s$%s$", argv[1], argv[2]);
+	sprintf(buffer, "$%s$%s", argv[1], argv[2]);
 	int count = 3; 
 	for (count = 3; count < argc - 2; count++){
-		strcat(buffer, argv[count]);
 		strcat(buffer, "$");
+		strcat(buffer, argv[count]);
 	}
 	
-	printf("Buffer is %s", buffer);
+	printf("Buffer is %s\n", buffer);
 
 	// Time stamp before sending packets (entering for loop)
 	gettimeofday(&start, NULL);
 
-
+	// send packet to overlayrouter
 	if (sendto(sd, buffer, strlen(buffer), 0, (struct sockaddr *) &their_addr, len) < 0){
-	perror("ERROR on send to\n");
-	exit(1);
+		perror("ERROR on send to\n");
+		exit(1);
 	}
 	 
-	// Receive respons from the server
+	// Receive respons from overlayrouter
 	memset(buffer, 0, BUFFSIZE);
 	if ((n = recvfrom(sd, buffer, BUFFSIZE, 0, (struct sockaddr * ) &their_addr, &len))< 0){
-	perror("ERROR on recvfrom\n");
-	exit(1);
+		perror("ERROR on recvfrom\n");
+		exit(1);
 	}
 
 	printf("The data-port-1: %s\n", buffer);

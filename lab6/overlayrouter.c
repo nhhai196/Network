@@ -33,6 +33,14 @@
 #define BUFSIZE 1500
 #define PORT 20000
 
+struct {
+	unsigned long src_IP;
+	unsigned short int src_port; 
+	unsigned long dst_IP;
+	unsigned short int dst_port;
+	int flags; // for temporary entry 
+} route_entry;
+
 int token_payload(char * buffer, char * tokens[]){
 	int i = 0;
 	char * temp; 
@@ -46,8 +54,9 @@ int token_payload(char * buffer, char * tokens[]){
 	return i--;
 }
 
-// function to check whether it is the first router
-int isFirst(char * ptr){
+// function to check whether the last IP address inscribed in the message
+// matches its own IP-address 
+int matchedIP(char * ptr){
 	char * hostname;
 	char * ip;
 	hostname = (char *) malloc(50);
@@ -60,7 +69,8 @@ int isFirst(char * ptr){
 	printf("Host name is %s\n", hostname);
 	
 	if ((he = gethostbyname(hostname)) == NULL){
-		perror("gethostbyname");
+		printf("Error on gethostbyname\n");
+		return 0;
 	}
 	
 	addr_list = (struct in_addr **) he->h_addr_list;
@@ -73,8 +83,11 @@ int isFirst(char * ptr){
 	printf("IP address is %s\n", ip);
 	
 	if (strcmp(ip, ptr) == 0){
+		printf("Matched\n");
 		return 1;
 	}
+	
+	printf("Mismatched\n");
 	
 	return 0;
 }
@@ -99,7 +112,7 @@ int main(int argc, char * argv[]){
 		printf("Usage: ./overlayrouter server-port\n");
 		exit(0);
 	}
-	isFirst("127.0.0.1");
+
 	// Create a UDP socket
 	if ((sd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0){
 		perror("ERROR on creating socket");
@@ -129,39 +142,45 @@ int main(int argc, char * argv[]){
 			perror("ERROR on recvfrom");
 			exit(0);
 		}
+		
+		printf("Received request from %s\n", inet_ntoa(cli_add.sin_addr));
 
 		int pid = fork();
 		if (pid < 0){
 			perror("ERROR on fork");
 		}
-		else if (pid == 0){
-			serverPort = strtok(buffer,"$");
-			serverIP = strtok(NULL, "$");
-			printf("Received request from %s, %d\n", serverIP, atoi(serverPort));
-			// zero out the structure
-			memset((char *) &rserv_add, 0, sizeof(rserv_add));
-
-			if ((he=gethostbyname(serverIP)) == NULL) { // get the host info
-				perror("gethostbyname");
-				exit(1);
+		else if (pid == 0){ // child process
+			char stripped_buffer[BUFSIZE];
+			// strip its own IP address
+			strcpy(stripped_buffer, buffer);
+			char *temp; 
+			temp = strrchr(stripped_buffer, '$');
+			*temp = '\0';
+			printf("Stripped buffer is %s\n", stripped_buffer);
+			
+			// Tokenize the payload 
+			char * tokens[20];
+			int count; 
+			count = token_payload(buffer, tokens);
+			printf("Number of tokens is %d\n", count);
+			
+			// Check if not matched, then discard 
+			if (!matchedIP(tokens[count-1])){
+				//continue; 
 			}
-
-			rserv_add.sin_family = AF_INET;
-			rserv_add.sin_port = htons(atoi(serverPort));
-			rserv_add.sin_addr = *((struct in_addr *)he->h_addr);
-			bzero(&(rserv_add.sin_zero), 8); // zero the rest of the struct
 
 			srand(time(NULL));
 			newport = 10000 + rand()%20000;
 			memset(buf, 0, BUFSIZE);
 			sprintf(buf, "%d", newport);
 
-			// Send a UDP packet, containing data-port-number, back to overlaybuild
+			// Send a UDP packet, containing data-port-number, back to overlaybuild/previous router
 			if (sendto(sd, buf, strlen(buf), 0, (struct sockaddr *) &cli_add, len)< 0){
 				perror("ERROR on first sendto");
-			exit(1);
+				exit(1);
 			}
-			// Create a new server UDP socket 
+			
+			// Create a new server UDP socket on the new data-port-number for listening 
 			if ((newsd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0){
 				perror("ERROR on creating socket");
 				exit(1);
@@ -176,18 +195,51 @@ int main(int argc, char * argv[]){
 
 			// bind socket to the new port 
 			if (bind(newsd, (struct sockaddr *) &newserv_add, sizeof(newserv_add)) < 0){
-			perror("ERROR on binding");
-			exit(1);
+				perror("ERROR on binding");
+				exit(1);
 			}
 			printf("Server on port %d...\n", newport);
+			
+			// Send a UDP packet containing stripped payload to the next router if not the last router
+			if (count != 3){
+				printf("Not the last router\n");
+				
+				// get the IP address of the next router
+				char nextIP[20];
+				temp = strrchr(stripped_buffer, '$'); 
+				temp++;
+				strcpy(nextIP, temp);
+				printf("IP of the next router is %s\n", nextIP);
+				printf("Lenght of next IP %ld\n", strlen(nextIP));
+				
+				// zero out the structure
+				memset((char *) &cli_add, 0, sizeof(cli_add));
 
+				if ((he=gethostbyname(nextIP)) == NULL) { // get the next router info
+					perror("gethostbyname");
+					exit(1);
+				}
+
+				cli_add.sin_family = AF_INET;
+				cli_add.sin_port = htons(atoi(argv[1]));
+				cli_add.sin_addr = *((struct in_addr *)he->h_addr);
+				bzero(&(cli_add.sin_zero), 8); // zero the rest of the struct
+				
+				if (sendto(newsd, stripped_buffer, strlen(stripped_buffer), 0, (struct sockaddr *) &cli_add, len)< 0){
+					perror("ERROR on first sendto");
+					exit(1);
+				}
+			}
+			
 			while(1){
 				memset(buffer,0, BUFSIZE);
+				memset((char *) &cli_add, 0, sizeof(cli_add));
+				
 				if ((n = recvfrom(newsd, buffer, BUFSIZE, 0, (struct sockaddr * ) &cli_add, &len)) == -1){
 					perror("ERROR on recvfrom");
 					exit(0);
 				}
-
+				printf("Message is %s\n from %s", buffer, inet_ntoa(cli_add.sin_addr));
 				saved1 = saved2;
 				saved2 = cli_add;
 
