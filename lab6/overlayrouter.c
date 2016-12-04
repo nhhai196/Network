@@ -106,6 +106,8 @@ int main(int argc, char * argv[]){
 	
 	// get the size of struct addr
 	len = sizeof(cli_add);
+	// Set the seed for the rand() function
+	srand(time(NULL));
 
 	// Check whether the number of input arguments is correct
 	if (argc != 2){
@@ -168,8 +170,7 @@ int main(int argc, char * argv[]){
 			if (!matchedIP(tokens[count-1])){
 				//continue; 
 			}
-
-			srand(time(NULL));
+			
 			newport = 10000 + rand()%90000;
 			memset(buf, 0, BUFSIZE);
 			sprintf(buf, "%d", newport);
