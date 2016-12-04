@@ -47,7 +47,7 @@ int token_payload(char * buffer, char * tokens[]){
 	temp = strtok(buffer, "$");
 	while (temp != NULL){
 		tokens[i++] = temp;
-		printf("%s\n", temp);
+		//printf("%s\n", temp);
 		temp = strtok(NULL, "$");
 	}
 	
@@ -80,7 +80,7 @@ int matchedIP(char * ptr){
 		break;
 	}
 	
-	printf("IP address is %s\n", ip);
+	printf("My own IP address is %s\n", ip);
 	
 	if (strcmp(ip, ptr) == 0){
 		printf("Matched\n");
@@ -143,7 +143,7 @@ int main(int argc, char * argv[]){
 			exit(0);
 		}
 		
-		printf("Received request from %s\n", inet_ntoa(cli_add.sin_addr));
+		printf("Received request %s from %s\n", buffer, inet_ntoa(cli_add.sin_addr));
 
 		int pid = fork();
 		if (pid < 0){
@@ -170,7 +170,7 @@ int main(int argc, char * argv[]){
 			}
 
 			srand(time(NULL));
-			newport = 10000 + rand()%20000;
+			newport = 10000 + rand()%90000;
 			memset(buf, 0, BUFSIZE);
 			sprintf(buf, "%d", newport);
 
@@ -179,6 +179,7 @@ int main(int argc, char * argv[]){
 				perror("ERROR on first sendto");
 				exit(1);
 			}
+			printf("Sent data port number %s\n", buf);
 			
 			// Create a new server UDP socket on the new data-port-number for listening 
 			if ((newsd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0){
@@ -229,8 +230,11 @@ int main(int argc, char * argv[]){
 					perror("ERROR on first sendto");
 					exit(1);
 				}
+				
+				printf("Sent stripped payload to the next router\n");
 			}
 			
+			printf("Start waiting on new UDP socket binded to the new port\n");
 			while(1){
 				memset(buffer,0, BUFSIZE);
 				memset((char *) &cli_add, 0, sizeof(cli_add));
