@@ -179,7 +179,7 @@ int main(int argc, char * argv[]){
 				perror("ERROR on first sendto");
 				exit(1);
 			}
-			printf("Sent data port number %s to previous router\n", newport);
+			printf("Sent data port number %d to previous router\n", newport);
 			
 			// Create a new server UDP socket on the new data-port-number for listening 
 			if ((newsd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0){
