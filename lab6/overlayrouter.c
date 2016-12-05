@@ -193,7 +193,7 @@ int main(int argc, char * argv[]){
 			strcpy(stripped_buffer, buffer);
 			char *temp; 
 			temp = strrchr(stripped_buffer, '$');
-			temp++;
+			temp;
 			*temp = '\0';
 			printf("Stripped buffer is %s\n", stripped_buffer);
 			
