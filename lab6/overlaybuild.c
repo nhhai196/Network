@@ -34,7 +34,7 @@
 
 int main(int argc, char * argv[]){
 	// Variable declrations and initializations
-	struct sockaddr_in their_addr;
+	struct sockaddr_in their_addr, my_addr;
 	char buffer[BUFFSIZE];
 	int sd, n, i;
 	socklen_t len;
@@ -54,6 +54,19 @@ int main(int argc, char * argv[]){
 		perror("ERROR on creating socket");
 		exit(1);
 	}
+	
+	// zero out the structure
+	memset((char *) &my_addr, 0, sizeof(my_addr));
+
+	my_addr.sin_family = AF_INET;
+	my_addr.sin_port = htons(atoi(argv[argc-1]));
+	my_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+	// bind socket to the build-port 
+	if (bind(sd, (struct sockaddr *) &my_addr, sizeof(my_addr)) < 0){
+		perror("ERROR on binding");
+		exit(1);
+	}
 
 	// zero out the structure
 	memset((char *) &their_addr, 0, sizeof(their_addr));
@@ -68,12 +81,6 @@ int main(int argc, char * argv[]){
 	their_addr.sin_addr = *((struct in_addr *)he->h_addr);
 	bzero(&(their_addr.sin_zero), 8); // zero the rest of the struct
 	printf("Port : %s", argv[argc-2]);
-	
-	// bind socket to build-port 
-	if (bind(sd, (struct sockaddr *) &their_addr, sizeof(their_addr)) < 0){
-		perror("ERROR on binding");
-		exit(1);
-	}
 	
 	// Zero out buffer
 	memset(buffer, 0, BUFFSIZE);
