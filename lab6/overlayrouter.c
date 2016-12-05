@@ -341,6 +341,11 @@ int main(int argc, char * argv[]){
 						exit(1);
 					}					
 				}
+				
+				if (strcmp (buffer, "terve") == 0){
+					printf("End\n");
+					continue;
+				}
 /*				printf("Received message %s\n from %s", buffer, inet_ntoa(cli_add.sin_addr));*/
 /*				saved1 = saved2;*/
 /*				saved2 = cli_add;*/
