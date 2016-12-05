@@ -265,17 +265,17 @@ int main(int argc, char * argv[]){
 				}
 				
 				printf("Sent stripped payload = %s to the next router %s\n", stripped_buffer, inet_ntoa(dst_add.sin_addr)); 
-				//memset(buffer,0, BUFSIZE);
+				char new_buffer[BUFSIZE];
+				memset(new_buffer,0, BUFSIZE);
 				memset((char *) &cli_add, 0, sizeof(cli_add));
 				
-				if ((n = recvfrom(newsd, buffer, BUFSIZE, 0, (struct sockaddr * ) &cli_add, &len)) == -1){
+				if ((n = recvfrom(newsd, new_buffer, BUFSIZE, 0, (struct sockaddr * ) &cli_add, &len)) == -1){
 					perror("ERROR on recvfrom");
 					exit(0);
 				}
 				printf("Received a message %s from %s\n", buffer, inet_ntoa(cli_add.sin_addr));
 				dst_add = cli_add;
 				printf("Updating routing table at router %s\n", tokens[count-1]);
-				printf("Tokens count-1 = %s\n", tokens[count-1]);
 				gettimeofday(&start, NULL);
 				printf("At time stamp: %ld(s)%ld(us),\n", start.tv_sec, start.tv_usec);
 				printf("the two labels below are added to route table\n");
