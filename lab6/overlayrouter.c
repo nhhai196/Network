@@ -145,6 +145,7 @@ int main(int argc, char * argv[]){
 	printf("Waiting for data...\n");
 	// Keep listening for data
 	while(1) {
+		printf("Check\n");
 		fflush(stdout);
 		memset(buffer, 0, BUFSIZE);
 
