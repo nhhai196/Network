@@ -244,6 +244,7 @@ int main(int argc, char * argv[]){
 				
 				// get the IP address of the next router
 				char nextIP[20];
+				stripped_buffer[strlen(stripped_buffer)-1] = '\0';
 				temp = strrchr(stripped_buffer, '$'); 
 				temp++;
 				strcpy(nextIP, temp);
