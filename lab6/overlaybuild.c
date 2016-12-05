@@ -69,6 +69,12 @@ int main(int argc, char * argv[]){
 	bzero(&(their_addr.sin_zero), 8); // zero the rest of the struct
 	printf("Port : %s", argv[argc-2]);
 	
+	// bind socket to build-port 
+	if (bind(sd, (struct sockaddr *) &their_addr, sizeof(their_addr)) < 0){
+		perror("ERROR on binding");
+		exit(1);
+	}
+	
 	// Zero out buffer
 	memset(buffer, 0, BUFFSIZE);
 	
