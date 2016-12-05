@@ -90,7 +90,7 @@ int matchedIP(char * ptr){
 	printf("My own IP address is %s\n", ip);
 	
 	if (strcmp(ip, ptr) == 0){
-		printf("Matched\n");
+		printf("The IP addresseses are matched\n");
 		return 1;
 	}
 	
