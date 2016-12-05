@@ -286,7 +286,16 @@ int main(int argc, char * argv[]){
 				// the routing table entry is confirmed
 				printf("This is the last router\n");
 				
+				// Update 
 				printf("Dst IP: %s\n", tokens[0]);
+				if ((he=gethostbyname(tokens[0])) == NULL) { // get the next router info
+					perror("gethostbyname");
+					exit(1);
+				}
+				
+				dst_add.sin_port = htons(atoi(tokens[1]));
+				dst_add.sin_addr = *((struct in_addr *)he->h_addr);
+				
 				// Send a packet to previous hop to signify that the routing table entry is confirmed
 				char payload[BUFSIZE];
 				memset(payload, 0, BUFSIZE);
