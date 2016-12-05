@@ -206,7 +206,7 @@ int main(int argc, char * argv[]){
 				//continue; 
 			}
 			
-			data_port = 10000 + rand()%90000;
+			data_port = 10000 + rand()%50000;
 			memset(buf, 0, BUFSIZE);
 			sprintf(buf, "%d", data_port);
 			
