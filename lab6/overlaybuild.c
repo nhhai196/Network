@@ -86,11 +86,11 @@ int main(int argc, char * argv[]){
 	memset(buffer, 0, BUFFSIZE);
 	
 	// Create payload $dst-IP$dst-port$routerk-IP$...$router2-IP$router1-IP$
-	sprintf(buffer, "$%s$%s", argv[1], argv[2]);
+	sprintf(buffer, "$%s$%s$", argv[1], argv[2]);
 	int count = 3; 
 	for (count = 3; count < argc - 2; count++){
-		strcat(buffer, "$");
 		strcat(buffer, argv[count]);
+		strcat(buffer, "$");
 	}
 	
 	printf("Buffer is %s\n", buffer);

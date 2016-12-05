@@ -179,7 +179,7 @@ int main(int argc, char * argv[]){
 			printf("Sent confirmation to previous router\n");
 		}
 		else if (buffer[0] =='$') {
-			printf("Received request %s from %s on port %d\n", 
+			printf("Received a request %s from %s on port %d\n", 
 			buffer, inet_ntoa(cli_add.sin_addr), ntohs(cli_add.sin_port));
 			src_add = cli_add;
 		
@@ -191,10 +191,11 @@ int main(int argc, char * argv[]){
 /*		else if (pid == 0){ // child process*/
 			char stripped_buffer[BUFSIZE];
 			// strip its own IP address
+			buffer[strlen(buffer)-1] = '\0';
 			strcpy(stripped_buffer, buffer);
 			char *temp; 
 			temp = strrchr(stripped_buffer, '$');
-			temp;
+			temp++;
 			*temp = '\0';
 			printf("Stripped buffer is %s\n", stripped_buffer);
 			
@@ -235,11 +236,11 @@ int main(int argc, char * argv[]){
 				perror("ERROR on first sendto");
 				exit(1);
 			}
-			printf("Sent data port number %d to previous router\n", data_port);
+			printf("Sent data port number %d to the previous router\n", data_port);
 			
 			// Send a UDP packet containing stripped payload to the next router if not the last router
 			if (count != 3){
-				printf("Not the last router\n");
+				printf("This is not the last router\n");
 				
 				// get the IP address of the next router
 				char nextIP[20];
@@ -247,7 +248,7 @@ int main(int argc, char * argv[]){
 				temp++;
 				strcpy(nextIP, temp);
 				printf("IP of the next router is %s\n", nextIP);
-				printf("Lenght of next IP %ld\n", strlen(nextIP));
+				//printf("Lenght of next IP %ld\n", strlen(nextIP));
 				
 				// zero out the structure
 				memset((char *) &cli_add, 0, sizeof(cli_add));
@@ -267,15 +268,15 @@ int main(int argc, char * argv[]){
 					exit(1);
 				}
 				
-				printf("Sent stripped payload to the next router\n"); 
-								memset(buffer,0, BUFSIZE);
+				printf("Sent stripped payload = %s to the next router\n", stripped_buffer); 
+				memset(buffer,0, BUFSIZE);
 				memset((char *) &cli_add, 0, sizeof(cli_add));
 				
 				if ((n = recvfrom(newsd, buffer, BUFSIZE, 0, (struct sockaddr * ) &cli_add, &len)) == -1){
 					perror("ERROR on recvfrom");
 					exit(0);
 				}
-				printf("Received message %s from %s on port %d\n", buffer, inet_ntoa(cli_add.sin_addr), ntohs(cli_add.sin_port));
+				printf("Received a message %s from %s on port %d\n", buffer, inet_ntoa(cli_add.sin_addr), ntohs(cli_add.sin_port));
 				dst_add = cli_add;
 				
 				continue;
@@ -287,7 +288,7 @@ int main(int argc, char * argv[]){
 				printf("This is the last router\n");
 				
 				// Update 
-				printf("Dst IP: %s\n, dst port: %s", tokens[0], tokens[1]);
+				printf("Dst IP: %s, dst port: %s\n", tokens[0], tokens[1]);
 				if ((he=gethostbyname(tokens[0])) == NULL) { // get the next router info
 					perror("gethostbyname");
 					exit(1);
