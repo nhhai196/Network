@@ -292,7 +292,7 @@ int main(int argc, char * argv[]){
 					perror("ERROR on sendto");
 					exit(1);
 				}
-				
+				printf("Dst IP: %s", tokens[0]);
 				// zero out the structure
 				memset((char *) &dst_add, 0, sizeof(dst_add));
 
