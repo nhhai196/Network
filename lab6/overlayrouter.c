@@ -176,6 +176,7 @@ int main(int argc, char * argv[]){
 				perror("ERROR on first sendto");
 				exit(1);
 			}
+			printf("Sent confirmation to previous router\n");
 		}
 		else if (buffer[0] =='$') {
 			printf("Received request %s from %s on port %d\n", 
@@ -302,6 +303,7 @@ int main(int argc, char * argv[]){
 					exit(1);
 				}
 			}
+		}
 			
 			printf("Server on new port %d...\n", data_port);
 			while(1){
@@ -356,7 +358,7 @@ int main(int argc, char * argv[]){
 /*					break;*/
 /*				}*/
 			}
-		}
+			
 /*		else { // Parent process*/
 /*			close(newsd);*/
 /*			//close(sockd);*/
