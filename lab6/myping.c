@@ -49,7 +49,7 @@ void handle_alarm( int sig ) {
 }
 
 int main(int argc, char * argv[]){
-  struct sockaddr_in serv_add;
+  struct sockaddr_in serv_add, my_addr;
   char buffer[BUFSIZE];
   int sd, n;
   socklen_t len;
@@ -68,6 +68,18 @@ int main(int argc, char * argv[]){
     perror("ERROR on creating socket");
     exit(1);
   }
+  	// zero out the structure
+	memset((char *) &my_addr, 0, sizeof(my_addr));
+
+	my_addr.sin_family = AF_INET;
+	my_addr.sin_port = htons(11111);
+	my_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+	// bind socket to the build-port 
+	if (bind(sd, (struct sockaddr *) &my_addr, sizeof(my_addr)) < 0){
+		perror("ERROR on binding");
+		exit(1);
+	}
 
   // zero out the structure
   memset((char *) &serv_add, 0, sizeof(serv_add));
