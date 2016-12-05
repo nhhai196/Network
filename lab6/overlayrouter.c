@@ -315,9 +315,9 @@ int main(int argc, char * argv[]){
 					exit(0);
 				}
 				
-				printf("Received packet from %d on port %d\n", cli_add.sin_addr.s_addr, cli_add.sin_port);
-				printf("Src :  %d on port %d\n", src_add.sin_addr.s_addr, src_add.sin_port);
-				printf("Dst : %d on port %d\n", dst_add.sin_addr.s_addr, dst_add.sin_port);
+				printf("Received packet from %s on port %d\n", inet_ntoa(cli_add.sin_addr), ntohs(cli_add.sin_port));
+				printf("Src :  %s on port %d\n", inet_ntoa(src_add.sin_addr), ntohs(src_add.sin_port));
+				printf("Dst : %s on port %d\n", inet_ntoa(dst_add.sin_addr), ntohs(dst_add.sin_port));
 				if (cli_add.sin_addr.s_addr == dst_add.sin_addr.s_addr){
 					printf("Send backward\n");
 					if (sendto(newsd, buffer, strlen(buffer), 0, (struct sockaddr *) &src_add, len) < 0){
