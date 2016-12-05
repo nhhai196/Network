@@ -243,18 +243,11 @@ int main(int argc, char * argv[]){
 				printf("This is not the last router\n");
 				
 				// get the IP address of the next router
-				char nextIP[20];
-				stripped_buffer[strlen(stripped_buffer)-1] = '\0';
-				temp = strrchr(stripped_buffer, '$'); 
-				temp++;
-				strcpy(nextIP, temp);
-				printf("IP of the next router is %s\n", nextIP);
-				//printf("Lenght of next IP %ld\n", strlen(nextIP));
 				
 				// zero out the structure
 				memset((char *) &cli_add, 0, sizeof(cli_add));
 
-				if ((he=gethostbyname(nextIP)) == NULL) { // get the next router info
+				if ((he=gethostbyname(tokens[count-2])) == NULL) { // get the next router info
 					perror("gethostbyname");
 					exit(1);
 				}
