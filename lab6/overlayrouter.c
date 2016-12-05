@@ -209,13 +209,6 @@ int main(int argc, char * argv[]){
 			data_port = 10000 + rand()%90000;
 			memset(buf, 0, BUFSIZE);
 			sprintf(buf, "%d", data_port);
-
-			// Send a UDP packet, containing data-port-number, back to overlaybuild/previous router
-			if (sendto(sd, buf, strlen(buf), 0, (struct sockaddr *) &cli_add, len)< 0){
-				perror("ERROR on first sendto");
-				exit(1);
-			}
-			printf("Sent data port number %d to previous router\n", data_port);
 			
 			// Create a new server UDP socket on the new data-port-number for listening 
 			if ((newsd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0){
@@ -235,7 +228,13 @@ int main(int argc, char * argv[]){
 				perror("ERROR on binding");
 				exit(1);
 			}
-			printf("Server on new port %d...\n", data_port);
+
+			// Send a UDP packet, containing data-port-number, back to overlaybuild/previous router
+			if (sendto(newsd, buf, strlen(buf), 0, (struct sockaddr *) &cli_add, len)< 0){
+				perror("ERROR on first sendto");
+				exit(1);
+			}
+			printf("Sent data port number %d to previous router\n", data_port);
 			
 			// Send a UDP packet containing stripped payload to the next router if not the last router
 			if (count != 3){
@@ -284,6 +283,8 @@ int main(int argc, char * argv[]){
 				// send a UDP packet with payload $$routerk-IP$data-port-k$,
 				// which signifies to the previous hop router(k-1)-IP that
 				// the routing table entry is confirmed
+				printf("This is the last router\n");
+				
 				memset(buffer, 0, BUFSIZE);
 				sprintf(buffer, "$$%s$%d$", tokens[count-1], data_port);
 				// @TODO check cli_add 
@@ -306,6 +307,7 @@ int main(int argc, char * argv[]){
 				bzero(&(dst_add.sin_zero), 8); // zero the rest of the struct
 			}
 			
+			printf("Server on new port %d...\n", data_port);
 			while(1){
 				memset(buffer,0, BUFSIZE);
 				memset((char *) &cli_add, 0, sizeof(cli_add));
