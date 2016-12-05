@@ -199,7 +199,7 @@ int main(int argc, char * argv[]){
 			
 			// Tokenize the payload 
 			count = token_payload(buffer, tokens);
-			printf("Number of tokens is %d\n", count);
+			printf("Number of tokens is %d\n, first token: %s", count, tokens[0]);
 			
 			// Check if not matched, then discard 
 			if (!matchedIP(tokens[count-1])){
@@ -292,7 +292,7 @@ int main(int argc, char * argv[]){
 					perror("ERROR on sendto");
 					exit(1);
 				}
-				printf("Dst IP: %s", tokens[0]);
+				printf("Dst IP: %s\n", tokens[0]);
 				// zero out the structure
 				memset((char *) &dst_add, 0, sizeof(dst_add));
 
