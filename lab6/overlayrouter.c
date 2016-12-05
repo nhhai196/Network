@@ -62,6 +62,12 @@ int token_payload(char * buffer, char * tokens[]){
 	return i--;
 }
 
+void handle_alarm( int sig ) {
+	signal(sig, SIG_IGN);
+	printf("No confirmation after 30 seconds\n");
+	exit(1);
+}
+
 // function to check whether the last IP address inscribed in the message
 // matches its own IP-address 
 int matchedIP(char * ptr){
@@ -162,6 +168,7 @@ int main(int argc, char * argv[]){
 			// Make routing table entry permanent
 			
 			// Perform route table lookup
+			alarm(0); // cancel the alarm
 			printf("Routing table entry is confirmed.\n");
 			// Send a packet to previous hop to signify that the routing table entry is confirmed
 			char payload[BUFSIZE];
@@ -180,12 +187,13 @@ int main(int argc, char * argv[]){
 			}
 			printf("Sent confirmation to previous router %s\n", inet_ntoa(src_add.sin_addr));
 		}
-		else if (buffer[0] =='$') {
+		else {
 			printf("Received a request %s from %s on port %d\n", 
 			buffer, inet_ntoa(cli_add.sin_addr), ntohs(cli_add.sin_port));
 			src_add = cli_add;
-		
-
+			// Set alarm for 30 seconds
+			signal(SIGALRM, handle_alarm);
+			alarm(30);
 /*		int pid = fork();*/
 /*		if (pid < 0){*/
 /*			perror("ERROR on fork");*/
@@ -207,9 +215,10 @@ int main(int argc, char * argv[]){
 			
 			// Check if not matched, then discard 
 			if (!matchedIP(tokens[count-1])){
+				printf("Discard the path-setup message\n");
 				continue; 
 			}
-			printf("Check %s", tokens[count-1]);
+
 			data_port = 10000 + rand()%50000;
 			memset(buf, 0, BUFSIZE);
 			sprintf(buf, "%d", data_port);
@@ -335,18 +344,18 @@ int main(int argc, char * argv[]){
 					exit(0);
 				}
 				
-				printf("Received packet from %s on port %d\n", inet_ntoa(cli_add.sin_addr), ntohs(cli_add.sin_port));
-				printf("Src :  %s on port %d\n", inet_ntoa(src_add.sin_addr), ntohs(src_add.sin_port));
-				printf("Dst : %s on port %d\n", inet_ntoa(dst_add.sin_addr), ntohs(dst_add.sin_port));
+				//printf("Received packet from %s on port %d\n", inet_ntoa(cli_add.sin_addr), ntohs(cli_add.sin_port));
+				//printf("Src :  %s on port %d\n", inet_ntoa(src_add.sin_addr), ntohs(src_add.sin_port));
+				//printf("Dst : %s on port %d\n", inet_ntoa(dst_add.sin_addr), ntohs(dst_add.sin_port));
 				if (cli_add.sin_addr.s_addr == dst_add.sin_addr.s_addr){
-					printf("Send backward\n");
+					//printf("Send backward\n");
 					if (sendto(newsd, buffer, strlen(buffer), 0, (struct sockaddr *) &src_add, len) < 0){
 						perror("ERROR on sendto\n");
 						exit(1);
 					}
 				}
 				else {
-					printf("Send forward\n");
+					//printf("Send forward\n");
 					if (sendto(newsd, buffer, strlen(buffer), 0, (struct sockaddr *) &dst_add, len) < 0){
 						perror("ERROR on sendto\n");
 						exit(1);
@@ -357,35 +366,6 @@ int main(int argc, char * argv[]){
 					printf("********************************************************\n");
 					break;
 				}
-				
-/*				printf("Received message %s\n from %s", buffer, inet_ntoa(cli_add.sin_addr));*/
-/*				saved1 = saved2;*/
-/*				saved2 = cli_add;*/
-
-/*				if (strcmp (buffer, "terve") == 0){// send back to client */
-/*					//printf("Yes, buffer %s\n", buffer);*/
-/*					//printf("Sending packet to %s, %d\n",inet_ntoa(saved1.sin_addr), ntohs(saved1.sin_port));*/
-/*					if (sendto(newsd, buffer, strlen(buffer), 0, (struct sockaddr *) &saved1, len) < 0){*/
-/*						perror("ERROR on sendto\n");*/
-/*						exit(1);*/
-/*					}	*/
-/*				}*/
-/*				else{*/
-/*					//printf("before send to real server, buffer %s\n", buffer);*/
-/*					// Forward packet to the real server */
-/*					//printf("Sending packet to %s, %d\n",inet_ntoa(rserv_add.sin_addr), ntohs(rserv_add.sin_port));*/
-
-/*					if (sendto(newsd, buffer, strlen(buffer), 0, (struct sockaddr *) &rserv_add, len) < 0){*/
-/*						perror("ERROR on sendto\n");*/
-/*						exit(1);*/
-/*					}*/
-/*				}*/
-/*				//printf("Check %d...\n", data_port);*/
-
-/*				// Check if receiving an end signal, i.e, a packet with payload of size 3*/
-/*				if (n == 3) {*/
-/*					break;*/
-/*				}*/
 			}
 			
 /*		else { // Parent process*/
