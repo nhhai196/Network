@@ -87,7 +87,7 @@ int matchedIP(char * ptr){
 		break;
 	}
 	
-	printf("My own IP address is %s\n", ip);
+	printf("My own IP address is %s.\n", ip);
 	
 	if (strcmp(ip, ptr) == 0){
 		printf("The IP addresseses are matched\n");
@@ -201,7 +201,7 @@ int main(int argc, char * argv[]){
 			
 			// Tokenize the payload 
 			count = token_payload(buffer, tokens);
-			printf("Number of tokens is %d, first token: %s\n", count, tokens[0]);
+			printf("Number of tokens is %d, last token: %s.\n", count, tokens[count-1]);
 			
 			// Check if not matched, then discard 
 			if (!matchedIP(tokens[count-1])){
