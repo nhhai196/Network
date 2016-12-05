@@ -287,7 +287,7 @@ int main(int argc, char * argv[]){
 				printf("This is the last router\n");
 				
 				// Update 
-				printf("Dst IP: %s\n", tokens[0]);
+				printf("Dst IP: %s\n, dst port: %s", tokens[0], tokens[1]);
 				if ((he=gethostbyname(tokens[0])) == NULL) { // get the next router info
 					perror("gethostbyname");
 					exit(1);
