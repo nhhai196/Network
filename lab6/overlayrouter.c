@@ -145,7 +145,6 @@ int main(int argc, char * argv[]){
 	printf("Waiting for data...\n");
 	// Keep listening for data
 	while(1) {
-		printf("Check\n");
 		fflush(stdout);
 		memset(buffer, 0, BUFSIZE);
 
@@ -312,6 +311,7 @@ int main(int argc, char * argv[]){
 					perror("ERROR on first sendto");
 					exit(1);
 				}
+				printf("Sent confirmation to previous router\n");
 			}
 		}
 			
@@ -343,14 +343,11 @@ int main(int argc, char * argv[]){
 					}					
 				}
 				
-				if (strcmp (buffer, "terve") == 0){
-					printf("End\n");
+				if (strcmp (buffer, "terve") == 0 || n == 3){
+					printf("********************************************************\n");
 					break;
 				}
 				
-				if (n==3){
-					break;
-				}
 /*				printf("Received message %s\n from %s", buffer, inet_ntoa(cli_add.sin_addr));*/
 /*				saved1 = saved2;*/
 /*				saved2 = cli_add;*/
