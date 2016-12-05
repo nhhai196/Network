@@ -33,13 +33,20 @@
 #define BUFSIZE 1500
 #define PORT 20000
 
-struct {
+typedef struct {
 	unsigned long src_IP;
-	unsigned short int src_port; 
-	unsigned long dst_IP;
-	unsigned short int dst_port;
+	unsigned short int src_port;
+} Label;
+
+typedef struct {
+	Label src;
+	Label dst;
 	int flags; // for temporary entry 
-} route_entry;
+} Entry;
+
+// Routing table
+Entry * route_table[100];
+int pos =0;
 
 int token_payload(char * buffer, char * tokens[]){
 	int i = 0;
@@ -95,14 +102,15 @@ int matchedIP(char * ptr){
 int main(int argc, char * argv[]){
 	// Variable declrations and initializations
 	struct sockaddr_in serv_add, cli_add, rserv_add, newserv_add;
-	int sd, n, l, newsd, sockd, newport;
+	int sd, n, l, newsd, sockd, data_port;
 	socklen_t len;
 	char buffer[BUFSIZE], buf[BUFSIZE];
 	char *serverIP = (char *) malloc(20);
 	char *serverPort = (char *) malloc(20);
-	int count = 0;
 	struct hostent *he;
-	struct sockaddr_in saved1, saved2;
+	struct sockaddr_in saved1, saved2, dst_add, src_add;
+	char * tokens[20];
+	int count;
 	
 	// get the size of struct addr
 	len = sizeof(cli_add);
@@ -145,24 +153,51 @@ int main(int argc, char * argv[]){
 			exit(0);
 		}
 		
-		printf("Received request %s from %s on port %d\n", buffer, inet_ntoa(cli_add.sin_addr), ntohs(cli_add.sin_port));
-
-		int pid = fork();
-		if (pid < 0){
-			perror("ERROR on fork");
+		if(buffer[1] == '$'){// Reveived confirmation
+			printf("Received confirmation %s from %s on port %d\n", 
+			buffer, inet_ntoa(cli_add.sin_addr), ntohs(cli_add.sin_port));
+			
+			// Make routing table entry permanent
+			
+			// Perform route table lookup
+			
+			// Send a packet to previous hop to signify that the routing table entry is confirmed
+			char payload[BUFSIZE];
+			memset(payload, 0, BUFSIZE);
+			sprintf(payload, "$$%s$%d$", tokens[count-1], data_port);
+			// zero out the structure
+			memset((char *) &serv_add, 0, sizeof(serv_add));
+			
+			serv_add.sin_family = AF_INET;
+			serv_add.sin_port = htons(atoi(argv[1]));
+			serv_add.sin_addr.s_addr = htonl(INADDR_ANY);
+			
+			if (sendto(sd, payload, strlen(payload), 0, (struct sockaddr *) &serv_add, len)< 0){
+				perror("ERROR on first sendto");
+				exit(1);
+			}
 		}
-		else if (pid == 0){ // child process
+		else if (buffer[0] =='$') {
+			printf("Received request %s from %s on port %d\n", 
+			buffer, inet_ntoa(cli_add.sin_addr), ntohs(cli_add.sin_port));
+			src_add = cli_add;
+		
+
+/*		int pid = fork();*/
+/*		if (pid < 0){*/
+/*			perror("ERROR on fork");*/
+/*		}*/
+/*		else if (pid == 0){ // child process*/
 			char stripped_buffer[BUFSIZE];
 			// strip its own IP address
 			strcpy(stripped_buffer, buffer);
 			char *temp; 
 			temp = strrchr(stripped_buffer, '$');
+			temp++;
 			*temp = '\0';
 			printf("Stripped buffer is %s\n", stripped_buffer);
 			
 			// Tokenize the payload 
-			char * tokens[20];
-			int count; 
 			count = token_payload(buffer, tokens);
 			printf("Number of tokens is %d\n", count);
 			
@@ -171,16 +206,16 @@ int main(int argc, char * argv[]){
 				//continue; 
 			}
 			
-			newport = 10000 + rand()%90000;
+			data_port = 10000 + rand()%90000;
 			memset(buf, 0, BUFSIZE);
-			sprintf(buf, "%d", newport);
+			sprintf(buf, "%d", data_port);
 
 			// Send a UDP packet, containing data-port-number, back to overlaybuild/previous router
 			if (sendto(sd, buf, strlen(buf), 0, (struct sockaddr *) &cli_add, len)< 0){
 				perror("ERROR on first sendto");
 				exit(1);
 			}
-			printf("Sent data port number %d to previous router\n", newport);
+			printf("Sent data port number %d to previous router\n", data_port);
 			
 			// Create a new server UDP socket on the new data-port-number for listening 
 			if ((newsd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0){
@@ -192,7 +227,7 @@ int main(int argc, char * argv[]){
 			memset((char *) &newserv_add, 0, sizeof(newserv_add));
 
 			newserv_add.sin_family = AF_INET;
-			newserv_add.sin_port = htons(newport);
+			newserv_add.sin_port = htons(data_port);
 			newserv_add.sin_addr.s_addr = htonl(INADDR_ANY);
 
 			// bind socket to the new port 
@@ -200,7 +235,7 @@ int main(int argc, char * argv[]){
 				perror("ERROR on binding");
 				exit(1);
 			}
-			printf("Server on new port %d...\n", newport);
+			printf("Server on new port %d...\n", data_port);
 			
 			// Send a UDP packet containing stripped payload to the next router if not the last router
 			if (count != 3){
@@ -232,7 +267,43 @@ int main(int argc, char * argv[]){
 					exit(1);
 				}
 				
-				printf("Sent stripped payload to the next router\n");
+				printf("Sent stripped payload to the next router\n"); 
+								memset(buffer,0, BUFSIZE);
+				memset((char *) &cli_add, 0, sizeof(cli_add));
+				
+				if ((n = recvfrom(newsd, buffer, BUFSIZE, 0, (struct sockaddr * ) &cli_add, &len)) == -1){
+					perror("ERROR on recvfrom");
+					exit(0);
+				}
+				printf("Received message %s from %s on port %d\n", buffer, inet_ntoa(cli_add.sin_addr), ntohs(cli_add.sin_port));
+				dst_add = cli_add;
+				
+				continue;
+			}
+			else { // the last router
+				// send a UDP packet with payload $$routerk-IP$data-port-k$,
+				// which signifies to the previous hop router(k-1)-IP that
+				// the routing table entry is confirmed
+				memset(buffer, 0, BUFSIZE);
+				sprintf(buffer, "$$%s$%d$", tokens[count-1], data_port);
+				// @TODO check cli_add 
+				if (sendto(sd, buffer, strlen(buffer), 0, (struct sockaddr *) &src_add, len)< 0){
+					perror("ERROR on sendto");
+					exit(1);
+				}
+				
+				// zero out the structure
+				memset((char *) &dst_add, 0, sizeof(dst_add));
+
+				if ((he=gethostbyname(tokens[0])) == NULL) { // get the next router info
+					perror("gethostbyname");
+					exit(1);
+				}
+				
+				dst_add.sin_family = AF_INET;
+				dst_add.sin_port = htons(atoi(tokens[1]));
+				dst_add.sin_addr = *((struct in_addr *)he->h_addr);
+				bzero(&(dst_add.sin_zero), 8); // zero the rest of the struct
 			}
 			
 			while(1){
@@ -243,40 +314,55 @@ int main(int argc, char * argv[]){
 					perror("ERROR on recvfrom");
 					exit(0);
 				}
-				printf("Received message %s\n from %s", buffer, inet_ntoa(cli_add.sin_addr));
-				saved1 = saved2;
-				saved2 = cli_add;
-
-				if (strcmp (buffer, "terve") == 0){// send back to client 
-					//printf("Yes, buffer %s\n", buffer);
-					//printf("Sending packet to %s, %d\n",inet_ntoa(saved1.sin_addr), ntohs(saved1.sin_port));
-					if (sendto(newsd, buffer, strlen(buffer), 0, (struct sockaddr *) &saved1, len) < 0){
-						perror("ERROR on sendto\n");
-						exit(1);
-					}	
-				}
-				else{
-					//printf("before send to real server, buffer %s\n", buffer);
-					// Forward packet to the real server 
-					//printf("Sending packet to %s, %d\n",inet_ntoa(rserv_add.sin_addr), ntohs(rserv_add.sin_port));
-
-					if (sendto(newsd, buffer, strlen(buffer), 0, (struct sockaddr *) &rserv_add, len) < 0){
+				
+				if (cli_add.sin_addr.s_addr == dst_add.sin_addr.s_addr){
+					printf("Send backward\n");
+					if (sendto(newsd, buffer, strlen(buffer), 0, (struct sockaddr *) &src_add, len) < 0){
 						perror("ERROR on sendto\n");
 						exit(1);
 					}
 				}
-				//printf("Check %d...\n", newport);
-
-				// Check if receiving an end signal, i.e, a packet with payload of sie 3
-				if (n == 3) {
-					break;
+				else {
+					printf("Send forward\n");
+					if (sendto(newsd, buffer, strlen(buffer), 0, (struct sockaddr *) &dst_add, len) < 0){
+						perror("ERROR on sendto\n");
+						exit(1);
+					}					
 				}
+/*				printf("Received message %s\n from %s", buffer, inet_ntoa(cli_add.sin_addr));*/
+/*				saved1 = saved2;*/
+/*				saved2 = cli_add;*/
+
+/*				if (strcmp (buffer, "terve") == 0){// send back to client */
+/*					//printf("Yes, buffer %s\n", buffer);*/
+/*					//printf("Sending packet to %s, %d\n",inet_ntoa(saved1.sin_addr), ntohs(saved1.sin_port));*/
+/*					if (sendto(newsd, buffer, strlen(buffer), 0, (struct sockaddr *) &saved1, len) < 0){*/
+/*						perror("ERROR on sendto\n");*/
+/*						exit(1);*/
+/*					}	*/
+/*				}*/
+/*				else{*/
+/*					//printf("before send to real server, buffer %s\n", buffer);*/
+/*					// Forward packet to the real server */
+/*					//printf("Sending packet to %s, %d\n",inet_ntoa(rserv_add.sin_addr), ntohs(rserv_add.sin_port));*/
+
+/*					if (sendto(newsd, buffer, strlen(buffer), 0, (struct sockaddr *) &rserv_add, len) < 0){*/
+/*						perror("ERROR on sendto\n");*/
+/*						exit(1);*/
+/*					}*/
+/*				}*/
+/*				//printf("Check %d...\n", data_port);*/
+
+/*				// Check if receiving an end signal, i.e, a packet with payload of size 3*/
+/*				if (n == 3) {*/
+/*					break;*/
+/*				}*/
 			}
 		}
-		else { // Parent process
-			close(newsd);
-			//close(sockd);
-		}
+/*		else { // Parent process*/
+/*			close(newsd);*/
+/*			//close(sockd);*/
+/*		}*/
 	}
 
 	// Close socket descriptor
