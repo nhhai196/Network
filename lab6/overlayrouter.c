@@ -265,7 +265,7 @@ int main(int argc, char * argv[]){
 				}
 				
 				printf("Sent stripped payload = %s to the next router %s\n", stripped_buffer, inet_ntoa(dst_add.sin_addr)); 
-				memset(buffer,0, BUFSIZE);
+				//memset(buffer,0, BUFSIZE);
 				memset((char *) &cli_add, 0, sizeof(cli_add));
 				
 				if ((n = recvfrom(newsd, buffer, BUFSIZE, 0, (struct sockaddr * ) &cli_add, &len)) == -1){
