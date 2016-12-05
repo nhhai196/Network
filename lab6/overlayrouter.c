@@ -284,9 +284,10 @@ int main(int argc, char * argv[]){
 				// which signifies to the previous hop router(k-1)-IP that
 				// the routing table entry is confirmed
 				printf("This is the last router\n");
+				char tem[BUFSIZE];
 				
-				memset(buffer, 0, BUFSIZE);
-				sprintf(buffer, "$$%s$%d$", tokens[count-1], data_port);
+				memset(temp, 0, BUFSIZE);
+				sprintf(temp, "$$%s$%d$", tokens[count-1], data_port);
 				// @TODO check cli_add 
 				if (sendto(sd, buffer, strlen(buffer), 0, (struct sockaddr *) &src_add, len)< 0){
 					perror("ERROR on sendto");
