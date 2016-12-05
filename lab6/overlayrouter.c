@@ -347,6 +347,10 @@ int main(int argc, char * argv[]){
 					printf("End\n");
 					break;
 				}
+				
+				if (n==3){
+					break;
+				}
 /*				printf("Received message %s\n from %s", buffer, inet_ntoa(cli_add.sin_addr));*/
 /*				saved1 = saved2;*/
 /*				saved2 = cli_add;*/
