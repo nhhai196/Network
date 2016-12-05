@@ -1,8 +1,8 @@
 CC=gcc
 CFLAGS=-I.
 DEPS = header.h
-OBJ = overlayrouter.o overlaybuild.o myping.o mypingd.o
-TARGET = overlayrouter overlaybuild myping mypingd
+OBJ = overlayrouter.o overlaybuild.o myping.o mypingd.o traffic_rcv.o traffic_snd.o
+TARGET = overlayrouter overlaybuild myping mypingd traffic_rcv traffic_snd
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS) 
