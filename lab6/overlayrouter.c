@@ -91,11 +91,11 @@ int matchedIP(char * ptr){
 	//printf("My own IP address is %s.\n", ip);
 	
 	if (strcmp(ip, ptr) == 0){
-		printf("The IP addresseses are matched\n");
+		printf("The IP addresseses are matched.\n");
 		return 1;
 	}
 	
-	printf("The IP addresses are mismatched\n");
+	printf("The IP addresses are mismatched.\n");
 	
 	return 0;
 }
@@ -207,9 +207,9 @@ int main(int argc, char * argv[]){
 			
 			// Check if not matched, then discard 
 			if (!matchedIP(tokens[count-1])){
-				//continue; 
+				continue; 
 			}
-			
+			printf("Check %s", tokens[count-1]);
 			data_port = 10000 + rand()%50000;
 			memset(buf, 0, BUFSIZE);
 			sprintf(buf, "%d", data_port);
