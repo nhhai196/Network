@@ -170,7 +170,7 @@ int main(int argc, char * argv[]){
 			
 			serv_add.sin_family = AF_INET;
 			serv_add.sin_port = htons(atoi(argv[1]));
-			serv_add.sin_addr.s_addr = htonl(INADDR_ANY);
+			serv_add.sin_addr.s_addr = src_add.sin_addr.s_addr;
 			
 			if (sendto(sd, payload, strlen(payload), 0, (struct sockaddr *) &serv_add, len)< 0){
 				perror("ERROR on first sendto");
@@ -199,7 +199,7 @@ int main(int argc, char * argv[]){
 			
 			// Tokenize the payload 
 			count = token_payload(buffer, tokens);
-			printf("Number of tokens is %d\n, first token: %s", count, tokens[0]);
+			printf("Number of tokens is %d, first token: %s\n", count, tokens[0]);
 			
 			// Check if not matched, then discard 
 			if (!matchedIP(tokens[count-1])){
@@ -284,28 +284,23 @@ int main(int argc, char * argv[]){
 				// which signifies to the previous hop router(k-1)-IP that
 				// the routing table entry is confirmed
 				printf("This is the last router\n");
-				char tem[BUFSIZE];
 				
-				memset(temp, 0, BUFSIZE);
-				sprintf(temp, "$$%s$%d$", tokens[count-1], data_port);
-				// @TODO check cli_add 
-				if (sendto(sd, buffer, strlen(buffer), 0, (struct sockaddr *) &src_add, len)< 0){
-					perror("ERROR on sendto");
-					exit(1);
-				}
 				printf("Dst IP: %s\n", tokens[0]);
+				// Send a packet to previous hop to signify that the routing table entry is confirmed
+				char payload[BUFSIZE];
+				memset(payload, 0, BUFSIZE);
+				sprintf(payload, "$$%s$%d$", tokens[count-1], data_port);
 				// zero out the structure
-				memset((char *) &dst_add, 0, sizeof(dst_add));
-
-				if ((he=gethostbyname(tokens[0])) == NULL) { // get the next router info
-					perror("gethostbyname");
+				memset((char *) &serv_add, 0, sizeof(serv_add));
+			
+				serv_add.sin_family = AF_INET;
+				serv_add.sin_port = htons(atoi(argv[1]));
+				serv_add.sin_addr.s_addr = src_add.sin_addr.s_addr;
+			
+				if (sendto(sd, payload, strlen(payload), 0, (struct sockaddr *) &serv_add, len)< 0){
+					perror("ERROR on first sendto");
 					exit(1);
 				}
-				
-				dst_add.sin_family = AF_INET;
-				dst_add.sin_port = htons(atoi(tokens[1]));
-				dst_add.sin_addr = *((struct in_addr *)he->h_addr);
-				bzero(&(dst_add.sin_zero), 8); // zero the rest of the struct
 			}
 			
 			printf("Server on new port %d...\n", data_port);
