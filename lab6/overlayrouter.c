@@ -264,7 +264,7 @@ int main(int argc, char * argv[]){
 					exit(1);
 				}
 				
-				printf("Sent stripped payload = %s to the next router %s\n", stripped_buffer, inet_ntoa(dst_add.sin_addr)); 
+				printf("Sent stripped payload = %s to the next router\n", stripped_buffer); 
 				char new_buffer[BUFSIZE];
 				memset(new_buffer,0, BUFSIZE);
 				memset((char *) &cli_add, 0, sizeof(cli_add));
@@ -299,6 +299,12 @@ int main(int argc, char * argv[]){
 				
 				dst_add.sin_port = htons(atoi(tokens[1]));
 				dst_add.sin_addr = *((struct in_addr *)he->h_addr);
+				printf("Updating routing table at router %s\n", tokens[count-1]);
+				gettimeofday(&start, NULL);
+				printf("At time stamp: %ld(s)%ld(us),\n", start.tv_sec, start.tv_usec);
+				printf("the two labels below are added to route table\n");
+				printf("(%s, %d)", inet_ntoa(src_add.sin_addr), ntohs(src_add.sin_port));
+				printf(" and (%s,%d)\n", inet_ntoa(dst_add.sin_addr), ntohs(dst_add.sin_port));
 				
 				// Send a packet to previous hop to signify that the routing table entry is confirmed
 				char payload[BUFSIZE];
