@@ -29,6 +29,7 @@
 
 #include <errno.h>
 #include <time.h>
+#include <sys/time.h>
 
 #define BUFSIZE 1500
 #define PORT 20000
@@ -87,14 +88,14 @@ int matchedIP(char * ptr){
 		break;
 	}
 	
-	printf("My own IP address is %s.\n", ip);
+	//printf("My own IP address is %s.\n", ip);
 	
 	if (strcmp(ip, ptr) == 0){
 		printf("The IP addresseses are matched\n");
 		return 1;
 	}
 	
-	printf("Mismatched\n");
+	printf("The IP addresses are mismatched\n");
 	
 	return 0;
 }
@@ -111,6 +112,7 @@ int main(int argc, char * argv[]){
 	struct sockaddr_in saved1, saved2, dst_add, src_add;
 	char * tokens[20];
 	int count;
+	struct timeval start;
 	
 	// get the size of struct addr
 	len = sizeof(cli_add);
@@ -160,7 +162,7 @@ int main(int argc, char * argv[]){
 			// Make routing table entry permanent
 			
 			// Perform route table lookup
-			
+			printf("Routing table entry is confirmed.\n");
 			// Send a packet to previous hop to signify that the routing table entry is confirmed
 			char payload[BUFSIZE];
 			memset(payload, 0, BUFSIZE);
@@ -176,7 +178,7 @@ int main(int argc, char * argv[]){
 				perror("ERROR on first sendto");
 				exit(1);
 			}
-			printf("Sent confirmation to previous router\n");
+			printf("Sent confirmation to previous router %s\n", inet_ntoa(src_add.sin_addr));
 		}
 		else if (buffer[0] =='$') {
 			printf("Received a request %s from %s on port %d\n", 
@@ -197,11 +199,11 @@ int main(int argc, char * argv[]){
 			temp = strrchr(stripped_buffer, '$');
 			temp++;
 			*temp = '\0';
-			printf("Stripped buffer is %s\n", stripped_buffer);
+			//printf("Stripped buffer is %s\n", stripped_buffer);
 			
 			// Tokenize the payload 
 			count = token_payload(buffer, tokens);
-			printf("Number of tokens is %d, last token: %s.\n", count, tokens[count-1]);
+			//printf("Number of tokens is %d, last token: %s.\n", count, tokens[count-1]);
 			
 			// Check if not matched, then discard 
 			if (!matchedIP(tokens[count-1])){
@@ -262,7 +264,7 @@ int main(int argc, char * argv[]){
 					exit(1);
 				}
 				
-				printf("Sent stripped payload = %s to the next router\n", stripped_buffer); 
+				printf("Sent stripped payload = %s to the next router %s\n", stripped_buffer, inet_ntoa(dst_add.sin_addr)); 
 				memset(buffer,0, BUFSIZE);
 				memset((char *) &cli_add, 0, sizeof(cli_add));
 				
@@ -270,8 +272,14 @@ int main(int argc, char * argv[]){
 					perror("ERROR on recvfrom");
 					exit(0);
 				}
-				printf("Received a message %s from %s on port %d\n", buffer, inet_ntoa(cli_add.sin_addr), ntohs(cli_add.sin_port));
+				printf("Received a message %s from %s\n", buffer, inet_ntoa(cli_add.sin_addr));
 				dst_add = cli_add;
+				printf("Updating routing table at router %s\n", tokens[count-1]);
+				gettimeofday(&start, NULL);
+				printf("At time stamp: %ld (s) %ld (us), ", start.tv_sec, start.tv_usec);
+				printf("the two labels below are added to route table\n");
+				printf("(%s, %d)", inet_ntoa(src_add.sin_addr), ntohs(src_add.sin_port));
+				printf(" and (%s,%d)\n", inet_ntoa(dst_add.sin_addr), ntohs(dst_add.sin_port));
 				
 				continue;
 			}
@@ -306,7 +314,7 @@ int main(int argc, char * argv[]){
 					perror("ERROR on first sendto");
 					exit(1);
 				}
-				printf("Sent confirmation to previous router\n");
+				printf("Sent confirmation to previous router %s\n", inet_ntoa(src_add.sin_addr));
 			}
 		}
 			
