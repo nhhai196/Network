@@ -275,8 +275,9 @@ int main(int argc, char * argv[]){
 				printf("Received a message %s from %s\n", buffer, inet_ntoa(cli_add.sin_addr));
 				dst_add = cli_add;
 				printf("Updating routing table at router %s\n", tokens[count-1]);
+				printf("Tokens count-1 = %s\n", tokens[count-1]);
 				gettimeofday(&start, NULL);
-				printf("At time stamp: %ld (s) %ld (us), ", start.tv_sec, start.tv_usec);
+				printf("At time stamp: %ld(s)%ld(us),\n", start.tv_sec, start.tv_usec);
 				printf("the two labels below are added to route table\n");
 				printf("(%s, %d)", inet_ntoa(src_add.sin_addr), ntohs(src_add.sin_port));
 				printf(" and (%s,%d)\n", inet_ntoa(dst_add.sin_addr), ntohs(dst_add.sin_port));
