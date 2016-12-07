@@ -149,7 +149,7 @@ int main(int argc, char * argv[]) {
 				// Get the name of the directory in which we read data
 				char file_path[100];
 				bzero(file_path, 100);
-				sprintf(file_path, "/home/osboxes/Network/lab6/filedeposit/%s", filename);
+				sprintf(file_path, "temp/%s", filename);
 
 				// Open the filename to read
 				fd = open(file_path, O_RDONLY);
@@ -159,7 +159,7 @@ int main(int argc, char * argv[]) {
 				}
 				int data_port = 10000 + rand()%50000;
 				memset(buffer, 0, BUFSIZE);
-				sprintf(buffer, "%d", data_port);
+				sprintf(buffer, "filedeposit/%d", data_port);
 	
 				// Create a new server UDP socket on the new data-port-number for listening 
 				if ((sockd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0){
@@ -225,7 +225,7 @@ int main(int argc, char * argv[]) {
 						perror("ERROR on sendto");
 						exit(1);
 					}
-		
+					printf(" A packet with seq_num = %d sent\n", seq_num);
 					// Update variables
 					LFS = seq_num;
 					seq_num++;

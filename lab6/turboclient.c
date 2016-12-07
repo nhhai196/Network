@@ -33,7 +33,6 @@
 #define COMMAND "date"
 
 //Variables for window sliding (reliable)
-unsigned int seq_num = 10000000;
 int RWS = 32; // receiver window size
 int LFR = 0; // last frame received 
 int LAF = 32; // largest acceptable frame 
@@ -175,7 +174,7 @@ int main(int argc, char *argv[]) {
 		seq_num = atoi(temp);
 		temp = strtok(NULL, "$");
 		strcpy(data, temp);
-		printf("seq_num = %d with data %s\n", seq_num, data);
+		printf("seq_num = %d\n", seq_num);
 		if (seq_num <= LFR || seq_num > LAF){
 			printf("The frame is discarded since LFR = %d, LAF = %d\n", LFR, LAF);
 		}
