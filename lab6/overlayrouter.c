@@ -192,9 +192,7 @@ int main(int argc, char * argv[]){
 			inet_ntoa(cli_add.sin_addr), ntohs(cli_add.sin_port));
 			printf("payload: %s\n", buffer);
 			src_add = cli_add;
-			// Set alarm for 30 seconds
-			signal(SIGALRM, handle_alarm);
-			alarm(30);
+
 /*		int pid = fork();*/
 /*		if (pid < 0){*/
 /*			perror("ERROR on fork");*/
@@ -253,6 +251,9 @@ int main(int argc, char * argv[]){
 			// Send a UDP packet containing stripped payload to the next router if not the last router
 			if (count != 3){
 				printf("This is not the last router\n");
+				// Set alarm for 30 seconds
+				signal(SIGALRM, handle_alarm);
+				alarm(30);
 				
 				// get the IP address of the next router
 				
