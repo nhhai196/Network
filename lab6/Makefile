@@ -1,8 +1,8 @@
 CC=gcc
 CFLAGS=-I.
 DEPS = header.h
-OBJ = overlayrouter.o overlaybuild.o myping.o mypingd.o traffic_rcv.o traffic_snd.o
-TARGET = overlayrouter overlaybuild myping mypingd traffic_rcv traffic_snd
+OBJ = overlayrouter.o overlaybuild.o myping.o mypingd.o traffic_rcv.o traffic_snd.o turboserver.o turboclient.o
+TARGET = overlayrouter overlaybuild myping mypingd traffic_rcv traffic_snd turboserver turboclient
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS) 
@@ -20,15 +20,18 @@ traffic_snd: $(OBJ)
 
 traffic_rcv: $(OBJ)
 	$(CC) -o traffic_rcv traffic_rcv.o $(CFLAGS)
-	
+
 myping: $(OBJ)
 	$(CC) -o myping myping.o $(CFLAGS)
 
 mypingd: $(OBJ)
 	$(CC) -o mypingd mypingd.o $(CFLAGS)
-	
-wetalk: $(OBJ)
-	$(CC) -o wetalk wetalk.o $(CFLAGS)	
-	
+
+turboserver: $(OBJ)
+	$(CC) -o turboserver turboserver.o $(CFLAGS)
+
+turboclient: $(OBJ)
+	$(CC) -o turboclient turboclient.o $(CFLAGS)
+
 clean: 
 	rm -f *.o $(TARGET) $(OBJ)

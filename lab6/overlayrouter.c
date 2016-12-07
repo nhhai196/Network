@@ -64,7 +64,7 @@ int token_payload(char * buffer, char * tokens[]){
 
 void handle_alarm( int sig ) {
 	signal(sig, SIG_IGN);
-	printf("No confirmation after 30 seconds\n");
+	printf("No confirmation after 30 seconds, discard the temporary routing table entry\n");
 	exit(1);
 }
 
@@ -188,8 +188,9 @@ int main(int argc, char * argv[]){
 			printf("Sent confirmation to previous router %s\n", inet_ntoa(src_add.sin_addr));
 		}
 		else {
-			printf("Received a request %s from %s on port %d\n", 
-			buffer, inet_ntoa(cli_add.sin_addr), ntohs(cli_add.sin_port));
+			printf("Received a request from %s on port %d\n", 
+			inet_ntoa(cli_add.sin_addr), ntohs(cli_add.sin_port));
+			printf("payload: %s\n", buffer);
 			src_add = cli_add;
 			// Set alarm for 30 seconds
 			signal(SIGALRM, handle_alarm);
